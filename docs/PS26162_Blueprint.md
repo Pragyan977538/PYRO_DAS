@@ -11,6 +11,13 @@
 | Event | Smart India Hackathon 2026 |
 | Dataset given | `firms.modaps.eosdis.nasa.gov/map` |
 
+> **Partly superseded (2026-09-29).** Several design decisions here were revised after a
+> review and a real-data test: registry clustering, promotion, alert tiers, baseline keys,
+> the Road A classifier (now rules plus physics), observability, VNF access and the
+> headline metric. See `CLAUDE.md` → *Changed decisions*. Where the two disagree,
+> `CLAUDE.md` wins. This document remains the reference for data sources, field lists and
+> the risk formula.
+
 ---
 
 ## Table of contents
@@ -208,7 +215,9 @@ Use the `_SP` (science processing) variants for building baselines — they are 
 | Global flare explorer | `https://eogdata.mines.edu/products/vnf/global_gas_flare.html` |
 | Reference implementation | `https://github.com/flaringmonitor/viirs-flare-code` |
 
-Free registered account required.
+Licence required since 10 January 2025: academic use is a free one-year licence, but it
+needs a signed agreement and EOG's approval. Interim access downloads only the reduced
+"ezCSV" files. **Treat VNF as optional enrichment — the pipeline must run without it.**
 
 **Why this matters more than anything else in the pipeline.** VNF uses nine night-collected channels — with M10, M11, M12 and M13 used to detect combustion sources — and calculates **temperature, source size and radiant heat using physical laws** (Planck curve fitting). With sunlight eliminated at night, the recorded signal is fully attributable to the combustion source.
 
@@ -279,7 +288,7 @@ Query **state by state** — an all-India request will time out.
 | Alert dashboard | `https://fsiforestfire.gov.in` |
 | Van Agni / focus areas | `https://fsi.nic.in/focus-areas` |
 
-Every point here is a forest fire already validated by state forest departments. **This is your labelled negative class, at zero annotation cost.** WMS/WFS layers, KML and CSV exports available.
+Each point is a FIRMS detection that falls inside a forest boundary; FSI's own FAQ says only hotspots within the forest area are disseminated, and state forest departments send feedback on only some of them. **Treat them as weak forest labels, not ground truth.** Alerts are disseminated as SMS, KML and CSV.
 
 FSI's operational conventions worth borrowing (and citing):
 
@@ -605,7 +614,7 @@ UPDATE sources s SET class = 'industrial_osm'
 FROM osm_industrial o
 WHERE ST_DWithin(s.geom::geography, o.geom::geography, 300);
 
--- Forest, from FSI validated detections
+-- Forest, from FSI alerts (weak: FIRMS points inside forest boundaries)
 UPDATE sources s SET class = 'forest'
 FROM fsi_alerts f
 WHERE ST_DWithin(s.geom::geography, f.geom::geography, 500);
@@ -933,7 +942,7 @@ Split **by state**, not randomly. Random splits let the model memorise specific 
 
 | Class | Source | Expected count |
 |---|---|---|
-| Forest fire | FSI validated alerts | Thousands |
+| Forest fire | FSI alerts (weak labels) + WorldCover tree cover | Thousands |
 | Agricultural | WorldCover cropland + Oct–Nov / Apr–May | Thousands |
 | Industrial persistent | OSM + EOG global flare list | Hundreds |
 | **Industrial fire** | **Hand-built from news archives** | **20–40** |

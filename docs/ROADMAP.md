@@ -1,22 +1,41 @@
 # FireWatch — build roadmap
 
-Implementation plan for **PS 26162**, divided into ten stages.
-Each stage is independently runnable and has a pass/fail acceptance test.
+Implementation plan for **PS 26162**. Each stage is independently runnable and has a
+pass/fail acceptance test. Design rules live in `CLAUDE.md`; where this file and
+`CLAUDE.md` disagree, `CLAUDE.md` wins.
+
+Revised 2026-09-29 after a design review — see `CLAUDE.md` → *Changed decisions*.
 
 ---
 
 ## Ground rules
 
-**Mock mode is the default.** Stages 1–9 are built and tested against a synthetic
-generator that produces FIRMS/VNF-shaped data. Nothing is blocked waiting for API keys.
-When credentials arrive, one config flag switches every stage to live data — the code
-does not change.
+**Real data first.** The FIRMS archive for India is public (yearly CSVs, no key), so every
+stage from Stage 2 on is built and tested against real detections. The synthetic
+generator shrinks to a test fixture (`MOCK_MODE=1`) for fast, offline, deterministic
+tests. Anomaly detection is tested by injecting synthetic spikes into *real* source
+histories.
 
 **Every stage ends with something runnable.** No stage is "write the classes for X".
 Each produces a command you can execute and a number you can check.
 
-**Cut from the bottom.** Stages 0–6 and 8 are the graded deliverables. Stage 7 and 9 are
-differentiation. If time runs out, Stage 7 goes first.
+**Two runners, same targets.** `make <target>` and `.\make.ps1 <target>` (Windows,
+PowerShell 5.1 compatible).
+
+**A stage passes only with the database tests running.** Skipped DB tests are not a pass.
+
+**Cut from the bottom.** Stages 0–6 and 8–9 carry the graded deliverables. Stage 7 is
+differentiation and goes first. Stage 10's headline metric is not optional.
+
+---
+
+## Status
+
+| Stage | State |
+|---|---|
+| 0 | Fixes done 2026-09-29. DB acceptance **pending Docker Desktop** |
+| 1.5 | Done 2026-09-29 — `reports/stage1_5_spike.md`. **Awaiting review before Stage 3** |
+| 1, 2, 3–10 | Not started |
 
 ---
 
@@ -24,35 +43,41 @@ differentiation. If time runs out, Stage 7 goes first.
 
 ```
 firewatch/
-├── docker-compose.yml          # postgis + api, one command to start
-├── requirements.txt
+├── docker-compose.yml          # postgis (+ timescaledb), one command to start
+├── Makefile, make.ps1          # same targets; make.ps1 for Windows
+├── requirements.txt            # pinned; Python 3.13
 ├── .env.example
-├── Makefile                    # make db, make backfill, make registry, make train...
 ├── sql/
-│   ├── 001_schema.sql
+│   ├── 001_schema.sql          # TimescaleDB optional
 │   ├── 002_indexes.sql
 │   └── 003_critical_assets.sql
 ├── firewatch/
-│   ├── config.py               # env-driven, MOCK_MODE flag lives here
+│   ├── config.py               # env-driven; MOCK_MODE (fixture) flag lives here
 │   ├── db.py                   # connection pool, upsert helpers
 │   ├── ingest/
-│   │   ├── mock.py             # synthetic FIRMS/VNF generator
-│   │   ├── firms.py
-│   │   ├── vnf.py
-│   │   ├── osm.py
+│   │   ├── normalize.py        # column normalisation, SP/NRT dedupe
+│   │   ├── fixture.py          # synthetic test fixture + spike injector
+│   │   ├── firms_archive.py    # public yearly CSVs
+│   │   ├── firms_api.py        # 2025+ and live NRT (needs FIRMS_MAP_KEY)
+│   │   ├── vnf.py              # optional enrichment
+│   │   ├── osm.py              # Geofabrik + pyosmium
+│   │   ├── landcover.py        # WorldCover sampling
 │   │   ├── fsi.py
-│   │   └── observability.py
+│   │   ├── gihs.py             # evaluation reference
+│   │   └── observability.py    # ERA5 cloud cover via Open-Meteo
 │   ├── registry/
+│   │   ├── cells.py            # 375 m grid + recurrence gate
 │   │   ├── cluster.py
 │   │   ├── fingerprint.py
 │   │   └── baseline.py
 │   ├── models/
-│   │   ├── labels.py           # weak supervision joins
-│   │   ├── source_clf.py       # Model 1
-│   │   └── road_a_clf.py       # Model 2
+│   │   ├── labels.py           # weak labels + LABEL_INPUTS
+│   │   └── source_clf.py       # Model 1 — the only learned model
 │   ├── inference/
 │   │   ├── router.py
-│   │   ├── anomaly.py
+│   │   ├── road_a.py           # rules + physics; emits the reason text
+│   │   ├── anomaly.py          # Road C, two tiers
+│   │   ├── promotion.py        # provisional sources that never silence alerts
 │   │   └── events.py
 │   ├── risk/
 │   │   ├── assets.py
@@ -60,8 +85,9 @@ firewatch/
 │   └── api/
 │       ├── main.py
 │       └── tiles.py
-├── web/                        # MapLibre frontend
-├── scripts/                    # thin CLI wrappers
+├── web/                        # MapLibre frontend + offline basemap
+├── scripts/                    # thin CLI wrappers: migrate.py, spike_cluster.py, ...
+├── reports/
 └── tests/
 ```
 
@@ -70,94 +96,159 @@ firewatch/
 ## Stage 0 — Skeleton and database
 
 **Build:** repo structure, `docker-compose.yml` (PostGIS + TimescaleDB), `requirements.txt`,
-`.env.example`, `config.py`, `db.py`, the full SQL schema from the blueprint, `Makefile`.
+`.env.example`, `config.py`, `db.py`, the SQL schema, `Makefile`.
 
-**Produces:** `sql/001_schema.sql`, `sql/002_indexes.sql`, `firewatch/config.py`,
-`firewatch/db.py`, `docker-compose.yml`, `Makefile`
+**Fixes (2026-09-29):** Python 3.13 venv; `make.ps1`; `scripts/migrate.py`; TimescaleDB
+optional; `instrument`, `firms_type`, `version` and `product` columns; SP/NRT dedupe
+(`firewatch/ingest/normalize.py`); the upsert test rewritten against the `detections`
+natural key so it can actually run; credentials checked only when they are used.
 
 **Accept when:**
 ```bash
-make db && make migrate
-psql -c "\dt"        # detections, sources, events, observability, critical_assets present
-psql -c "SELECT PostGIS_Version();"
+make install && make db && make migrate && make test     # or: .\make.ps1 <target>
 ```
+All tests pass **with the DB tests running** — none skipped. Then in `make psql`: `\dt`
+shows `detections, sources, events, observability, critical_assets, osm_industrial,
+forest_boundary, fsi_alerts`, and `SELECT PostGIS_Version();` answers.
 
-**Blocked by:** nothing. **Effort:** half a day.
+**Blocked by:** Docker Desktop (a manual install). **Effort:** half a day, done.
 
 ---
 
-## Stage 1 — Mock data generator
+## Stage 1 — Test fixture and spike injector
 
-**Build:** a synthetic generator that emits FIRMS-shaped CSV and VNF-shaped CSV for a
-configurable date range, with the six source classes, realistic within-class spread,
-55% missing temperature, monsoon cloud gaps, and a handful of injected fire events at
-known coordinates and dates.
+**Build:** a small synthetic generator that emits FIRMS-shaped rows — both MODIS and VIIRS
+column names, SP and NRT versions, missing temperatures — for unit tests. Biomass fires are
+spatially diffuse (fields scattered across a region, forest fires spreading across
+pixels), **never point sources**. Plus `inject_spikes(history, ...)`, which adds
+excursions of known size and time to a real source's history and returns the ground
+truth.
 
-This is not throwaway code. It is the **demo dataset** and the **test fixture** for every
-later stage, and it is what lets you rehearse the presentation without live data.
+**Produces:** `firewatch/ingest/fixture.py`, `tests/test_fixture.py`
 
-**Produces:** `firewatch/ingest/mock.py`, `scripts/generate_mock.py`
+**Accept when:** `make test` normalises fixture rows from both sensors through
+`normalize.py`, and injected spikes round-trip to their ground truth.
 
-**Accept when:**
-```bash
-python scripts/generate_mock.py --years 6 --out data/mock/
-# writes firms_*.csv and vnf_*.csv with the correct column names
-# ground_truth.csv lists every source and every injected event
-```
+**Blocked by:** Stage 0. **Effort:** half a day.
 
-**Blocked by:** Stage 0. **Effort:** one day.
+---
+
+## Stage 1.5 — Real-data spike (one year, no database)
+
+**Build:** pull one year of VIIRS for India, normalise it with the production code, and run:
+(A) the original plan — raw DBSCAN, `eps=500` m, `min_samples=5`, `ball_tree`;
+(A′) the same with `kd_tree`;
+(B) `min_samples=1` on one year, a conservative stand-in for ten years of accumulation;
+(C) 375 m cells + recurrence gate + DBSCAN with `sample_weight`.
+Measure peak memory per run in a fresh process. Show Jamnagar, the Punjab paddy belt and
+Jharia. Compare against FIRMS `type=2` and GIHS.
+
+**Produces:** `scripts/spike_cluster.py`, `reports/stage1_5_spike.md`,
+`reports/stage1_5/*.png`
+
+**Accept when:** the report answers, with numbers: (1) does raw clustering chain the paddy
+belt? (2) does `ball_tree` reduce memory? It also proposes starting gate thresholds for
+Stage 3.
+
+**Blocked by:** Stage 0 fixes only — it runs in pandas. **Effort:** one day.
+**Stage 3 does not start until the user has reviewed this.**
+
+**Result (2026-09-29):** both problems are real.
+- **Problem 1**, in a different form than predicted: the paddy belt fragments into
+  thousands of field clusters rather than one blob, but 57% of its detections still
+  land inside "sources" (1.8% gated). 33,963 raw sources vs 442 gated.
+- **Problem 2**, exactly as stated: `ball_tree` = `kd_tree` = 1,258 MB, and memory
+  grows faster than the data.
+- The gated method matches 99% of FIRMS-static detections and puts 83% of its sources
+  on GIHS sites.
+- Proposed gate: ≥ 4 months on ≥ 10 days within a year, in ≥ 2 years.
+
+Full numbers are in `reports/stage1_5_spike.md`.
 
 ---
 
 ## Stage 2 — Ingestion
 
-**Build:** FIRMS client (backfill loop + 3-hourly live pull, rate-limited, resumable),
-MODIS/VIIRS column normalisation, VNF loader with the spatial-temporal join, OSM loader
-via the Geofabrik + osmium path, FSI loader, observability writer.
+**Build:**
+- Archive loader for the public yearly CSVs (all years, all sensors) through
+  `normalize.py` into `detections`, SP taking precedence over NRT.
+- FIRMS API client for 2025 onward and the 3-hourly live NRT pull: rate-limited,
+  resumable, needs `FIRMS_MAP_KEY`. Sensor-agnostic, because S-NPP ends 1 Nov 2026.
+- VNF loader with the spatio-temporal join — **optional**; skips cleanly without an EOG
+  licence.
+- OSM via Geofabrik + pyosmium, using the tags in the `CLAUDE.md` label table →
+  `osm_industrial`.
+- WorldCover sampling at points (cloud-optimised GeoTIFFs, windowed reads).
+- FSI loader (weak forest labels). GIHS loader (evaluation reference only).
+- Observability: ERA5 cloud cover at overpass times via Open-Meteo → `observability`.
 
 **Produces:** everything under `firewatch/ingest/`, `scripts/backfill.py`
 
 **Accept when:**
 ```bash
-make backfill              # MOCK_MODE=1 by default
-psql -c "SELECT count(*), min(acq_datetime), max(acq_datetime) FROM detections;"
-psql -c "SELECT count(*) FROM detections WHERE vnf_temp_k IS NOT NULL;"   # ~45%
-psql -c "SELECT count(*) FROM observability;"                            # non-zero
+make backfill
+psql -c "SELECT instrument, product, count(*), min(acq_datetime), max(acq_datetime)
+         FROM detections GROUP BY 1, 2;"
+psql -c "SELECT count(*) FROM detections n WHERE n.product = 'NRT' AND EXISTS (
+           SELECT 1 FROM detections s WHERE s.product = 'SP' AND s.sensor = n.sensor
+             AND s.acq_datetime::date = n.acq_datetime::date);"       # must be 0
+psql -c "SELECT daynight, count(*) FROM detections GROUP BY 1;"        # record the split
+psql -c "SELECT count(*) FROM observability;"                          # non-zero
 ```
-Column normalisation verified: no row has both `bright_ti4` and `brightness` populated.
+If VNF is loaded, record its real coverage. It will be far below the old mock's 45%.
 
-**Blocked by:** Stages 0, 1. **Effort:** two days.
+**Blocked by:** Stages 0 and 1. **Effort:** two days.
 
 ---
 
 ## Stage 3 — Registry
 
-**Build:** state-partitioned DBSCAN with `algorithm="ball_tree"`, NaN-safe fingerprint
-computation, conditional baselines keyed by `sensor | daynight | season` with the
-30-sample fallback hierarchy.
+**Build:**
+- 375 m cells.
+- The recurrence gate, starting from Stage 1.5's values — within a year, ≥ 4 distinct
+  months on ≥ 10 distinct days, in at least 2 years — and calibrated here against GIHS
+  on the full archive.
+- DBSCAN on gated cells (`eps=500` m, `min_samples=5` by weight, `sample_weight`).
+- A 20 km footprint cap, as a backstop only: the widest gated source in 2023 was
+  6.8 km.
+- NaN-safe fingerprints.
+- Baselines keyed `instrument | daynight | season`, with the n ≥ 30 fallback
+  (→ `instrument | daynight` → source-wide).
 
-**Produces:** `firewatch/registry/`, `scripts/build_registry.py`
+Porting the Stage 1.5 spike code (`cell_table`, `grid_cluster`) is the starting point.
+
+**Produces:** `firewatch/registry/`, `scripts/build_registry.py`,
+`scripts/check_registry.py`
 
 **Accept when:**
 ```bash
 make registry
 psql -c "SELECT count(*) FROM sources;"
-psql -c "SELECT cls, count(*) FROM sources GROUP BY cls;"
-python scripts/check_registry.py    # purity against mock ground truth > 0.90
+python scripts/check_registry.py
 ```
-Every source has a non-empty `baselines` JSONB. Persistence values fall in (0, 1] and use
-the observed-nights denominator.
+`check_registry.py` asserts. The starting targets come from one year in Stage 1.5;
+raise them if the full archive allows:
+- **GIHS recall ≥ 70%** of confirmed India objects active in 2021, within 1 km
+- **Punjab paddy belt ≤ 2%** of detections within 500 m of a source
+- **FIRMS `type=2` recall ≥ 99%** of static-flagged detections within 500 m of a source
+  (evaluation only)
+- no source footprint wider than the cap
+- persistence in (0, 1], computed nights over nights
+- every source has a non-empty `baselines` JSONB
 
-**Blocked by:** Stage 2. **Effort:** two days.
-**Known issue to expect:** ~15% of co-located sources merge. Record the number.
+It also reports the share of sources on a GIHS site (83% in Stage 1.5; a lower bound on
+precision) and how many co-located sources merge.
+
+**Blocked by:** Stage 2, **and the user's review of Stage 1.5**. **Effort:** two days.
 
 ---
 
 ## Stage 4 — Weak labels and Model 1
 
-**Build:** the OSM/FSI/land-cover label joins, XGBoost training with GroupKFold by state,
-confusion matrix + per-class precision/recall + feature importances, model persistence,
-and the leakage guard (location features excluded, asserted in code).
+**Build:** label joins per the class table in `CLAUDE.md`, with `LABEL_INPUTS` declared
+per label. XGBoost with GroupKFold by spatial block (~2°, so no state polygons are
+needed); confusion matrix, per-class precision/recall, feature importances; model
+persistence; the leakage guard.
 
 **Produces:** `firewatch/models/labels.py`, `firewatch/models/source_clf.py`,
 `scripts/train.py`, `reports/model1_metrics.json`
@@ -167,33 +258,42 @@ and the leakage guard (location features excluded, asserted in code).
 make labels && make train
 cat reports/model1_metrics.json
 ```
-Confusion matrix printed. Accuracy reported with a state-grouped split. **The script fails
-loudly if any location feature appears in `FEATS`.** Feature importances written to the
-report.
+The report holds the confusion matrix, block-grouped accuracy, feature importances and
+the label count per class and source. **The script fails loudly if
+`FEATS ∩ LABEL_INPUTS` is non-empty.** If a class has too few honest labels (kiln is the
+likely one), drop or merge it and say so in the report.
 
 **Blocked by:** Stage 3. **Effort:** one and a half days.
-**This is the stage that decides your score. Do not compress it.**
+**This stage decides the classifier's quality. Do not compress it.**
 
 ---
 
 ## Stage 5 — Router and inference
 
-**Build:** the spatial-lookup router, Road C anomaly test with the two-consecutive-pass
-rule, Road A classifier (rules first, XGBoost second), and the Road A → registry promotion
-job.
+**Build:** the spatial-lookup router (against source footprints); Road A rules plus
+physics, emitting a reason string; Road C with two tiers — a provisional alert on one
+extreme pass, a confirmed alert on two consecutive breaching passes — with thresholds
+calibrated on spikes injected into real histories; promotion to provisional sources that
+keep alerting.
 
-**Produces:** `firewatch/inference/router.py`, `firewatch/inference/anomaly.py`,
-`firewatch/models/road_a_clf.py`, `scripts/run_inference.py`
+**Produces:** `firewatch/inference/router.py`, `road_a.py`, `anomaly.py`, `promotion.py`,
+`scripts/run_inference.py`
 
 **Accept when:**
 ```bash
 make inference
 psql -c "SELECT road, pred_class, count(*) FROM detections
-         WHERE road IS NOT NULL GROUP BY 1,2 ORDER BY 1;"
-python scripts/check_injected.py   # recovers the mock's injected fire events
+         WHERE road IS NOT NULL GROUP BY 1, 2 ORDER BY 1;"
+python scripts/check_injected.py   # spikes injected into real source histories
+python scripts/check_baghjan.py    # regression test
 ```
-Target: injected-event recall > 90%, Road B false-positive rate < 0.1% **after**
-two-pass confirmation.
+Targets:
+- injected-spike recall > 90% (confirmed tier)
+- confirmed false positives < 0.1% of Road B passes
+- provisional false positives < 0.01% of passes
+- every Road A detection carries a non-empty reason
+- **Baghjan** (Tinsukia, Assam; burning June–November 2020, coordinates from the verified
+  event set) is never routed to Road B while it burns
 
 **Blocked by:** Stage 4. **Effort:** two days.
 
@@ -202,7 +302,8 @@ two-pass confirmation.
 ## Stage 6 — Event assembly
 
 **Build:** spatial clustering within a pass, temporal linking across passes, event
-lifecycle (active → dormant → closed) with the 72-hour re-ignition window.
+lifecycle (active → dormant → closed) with the 72-hour re-ignition window. A provisional
+source's long-running incident stays one open event.
 
 **Produces:** `firewatch/inference/events.py`
 
@@ -210,7 +311,7 @@ lifecycle (active → dormant → closed) with the 72-hour re-ignition window.
 ```bash
 make events
 psql -c "SELECT count(*) FROM events;"
-python scripts/check_dedup.py   # one injected fire => exactly one event row
+python scripts/check_dedup.py   # one real fire in the verified set => exactly one event row
 ```
 
 **Blocked by:** Stage 5. **Effort:** one day.
@@ -231,7 +332,7 @@ curl localhost:8000/api/events/1 | jq .risk_breakdown
 ```
 Every scored event returns hazard, exposure and vulnerability sub-scores with the raw
 values behind each. A large fire far from population and assets scores low — verify this
-case explicitly, it is the argument for multiplication.
+case explicitly; it is the argument for multiplication.
 
 **Blocked by:** Stage 6. **Effort:** one day. **First to cut.**
 
@@ -240,7 +341,8 @@ case explicitly, it is the argument for multiplication.
 ## Stage 8 — API
 
 **Build:** FastAPI endpoints for detections, sources, events, timeseries and
-observability; `ST_AsMVT` vector tiles for anything above ~10k points.
+observability; `ST_AsMVT` vector tiles for anything above ~10k points. Responses carry
+the provisional flag, the alert tier and the reason text.
 
 **Produces:** `firewatch/api/`
 
@@ -259,16 +361,18 @@ curl "localhost:8000/api/tiles/detections/6/40/28.mvt" -o /dev/null -w "%{http_c
 
 ## Stage 9 — Frontend
 
-**Build:** MapLibre map, one toggleable layer per class, click-through detail panel
-showing class, confidence, temperature, FRP against baseline, nearest named facility and
-**the reason for the classification**, FRP time-series chart, time slider, observability
-overlay.
+**Build:** MapLibre map; one toggleable layer per class; a click-through detail panel
+showing class, confidence, temperature, FRP against baseline, nearest named facility, alert
+tier and **the reason for the classification** (Road A's rule path, or the baseline breach
+for Road C); FRP time-series chart; time slider; observability overlay. **Offline
+basemap:** a PMTiles extract of India served locally, because venue internet at the
+finale is unreliable.
 
 **Produces:** `web/`
 
-**Accept when:** all six class layers toggle independently; clicking any point opens the
+**Accept when:** every class layer toggles independently; clicking any point opens the
 detail panel with a populated reason field; the time slider redraws; the app runs from
-`docker-compose up` with no manual steps.
+`docker compose up` with no manual steps **and with the network disconnected**.
 
 **Blocked by:** Stage 8. **Effort:** two days.
 **This is deliverable (ii). It must exist even if it is plain.**
@@ -277,17 +381,34 @@ detail panel with a populated reason field; the time slider redraws; the app run
 
 ## Stage 10 — Validation and demo
 
-**Build:** held-out evaluation split by state, full metrics report, the hand-verified
-industrial-fire check set, a scripted demo path, and the limitations table.
+**Build:** the held-out evaluation, the full metrics report, a scripted demo path and the
+limitations table.
 
-**Produces:** `reports/validation.md`, `scripts/demo.sh`
+**Headline:** per-fire recall on the verified industrial fire set, with mean
+time-to-detect. Also: Model 1 confusion matrix and per-class precision/recall (reference:
+the published 77%); Road B false-positive rate; Road A discard rate; registry vs GIHS;
+registry vs FIRMS `type=2`. The limitations table lists verified accidents that left no
+FIRMS signature (fires between passes, heat confined inside vessels) — they count against
+recall, and they are reported, not hidden.
 
-**Accept when:** `reports/validation.md` contains the confusion matrix, per-class
-precision/recall, mean time-to-detect, Road B false-positive rate, Road A discard rate,
-and the comparison against the 77% published benchmark. `scripts/demo.sh` runs the
-three-minute demo path end to end without intervention.
+**Produces:** `reports/validation.md`, `scripts/demo.sh`, `scripts/demo.ps1`
 
-**Blocked by:** Stage 9. **Effort:** one day.
+**Accept when:** `reports/validation.md` contains all of the above, and the demo script
+runs the three-minute demo path end to end without intervention.
+
+**Blocked by:** Stage 9, and the verified event set. **Effort:** one day.
+
+---
+
+## Parallel track — people, not code (start now)
+
+- **Verified industrial fire set:** 20–40 news-verified events with date and location;
+  Baghjan 2020 must be in it. Check each one in FIRMS. Some accidents leave no thermal
+  signature; record those too, because they belong in the limitations table.
+- **VNF academic licence:** signed agreement, approval time unknown. Nothing blocks on it.
+- **Docker Desktop:** needs WSL2 or Hyper-V, virtualisation enabled in BIOS, admin rights.
+- **FIRMS `MAP_KEY`:** only needed for 2025 onward and live NRT. Free and instant.
+- **Critical asset register:** ~200 entries from PESO, CEA and MoPNG listings.
 
 ---
 
@@ -295,14 +416,14 @@ three-minute demo path end to end without intervention.
 
 ```
 0 ─→ 1 ─→ 2 ─→ 3 ─→ 4 ─→ 5 ─→ 6 ─→ 7
-                    │         │     │
-                    └─→ 8 ←───┴─────┘
-                        │
+│              ↑    │         │     │
+└─→ 1.5 ──────┘    └─→ 8 ←───┴─────┘
+   (review)             │
                         └─→ 9 ─→ 10
 ```
 
-Stage 8 can start as soon as Stage 3 finishes — the sources endpoint doesn't need events.
-That's the one place two people can work in parallel without blocking each other.
+Stage 1.5 feeds Stage 3 (gate thresholds and the go-ahead). Stage 8 can start as soon as
+Stage 3 finishes — the sources endpoint doesn't need events.
 
 ---
 
@@ -310,28 +431,30 @@ That's the one place two people can work in parallel without blocking each other
 
 | Stages | Content | Effort |
 |---|---|---|
-| 0–4 | Data → registry → trained classifier | ~7 days |
+| 0 fixes, 1, 1.5 | Environment, test fixture, real-data spike | ~2 days |
+| 2–4 | Ingestion → registry → Model 1 | ~5.5 days |
 | 5–6 | Inference and events | ~3 days |
 | 7 | Risk scoring | ~1 day |
 | 8–9 | API and frontend | ~3 days |
 | 10 | Validation | ~1 day |
-| | **Total** | **~15 working days** |
+| | **Total** | **~15.5 working days** |
 
-Comfortable for a hackathon build period with a team. For one person under pressure,
-Stages 0–5 plus 8–9 is the minimum viable submission, at roughly 10 days.
+The build window is October–November 2026; the 36-hour finale is in December. With a
+team of six, run four tracks: data and registry, labels and model, API and frontend, and
+the parallel track above.
 
 ---
 
 ## What I need from you per stage
 
-Nothing, for Stages 0–7 — mock mode covers it.
-
-**Stage 2** switches to live data the moment you have: the FIRMS `MAP_KEY`, an EOG account,
-and the Geofabrik India extract downloaded. Give me the key and I'll flip the flag.
-
-**Stage 7** needs the critical asset register. I'll seed ~40 entries I can source
-confidently (major refineries, LNG terminals, large thermal stations). Expanding to 200
-from the PESO and CEA listings is a manual task for someone on the team.
+- **Stage 0:** Docker Desktop installed, so the DB tests can run.
+- **Stage 2:** the FIRMS `MAP_KEY` for 2025 onward (history needs none); EOG credentials
+  once the VNF licence is approved (optional).
+- **Stage 5:** Baghjan's coordinates and dates from the verified event set.
+- **Stage 7:** the critical asset register. I'll seed ~40 entries I can source confidently
+  (major refineries, LNG terminals, large thermal stations); expanding to 200 from the
+  PESO and CEA listings is a manual task.
+- **Stage 10:** the complete verified event set.
 
 ---
 

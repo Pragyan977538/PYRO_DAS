@@ -3,6 +3,12 @@
 **AI-Based Detection and Classification of Industrial Fires and Persistent Thermal Sources**
 NTRO · Software · Disaster Management · SIH 2026
 
+> **Partly superseded (2026-09-29).** The numbers below come from a synthetic benchmark that
+> modelled stubble and forest fires as tight point sources — which is why raw DBSCAN looked
+> fine here. Several conclusions were revised after a review and a real-data test: see
+> `CLAUDE.md` → *Changed decisions* and `reports/stage1_5_spike.md`. Where they disagree,
+> `CLAUDE.md` wins.
+
 ---
 
 ## 0. Verdict
@@ -26,7 +32,7 @@ Run on 2026-09-28 from a clean Python 3.12 container.
 |---|---|---|
 | FIRMS area API | **Reachable** | `400 Invalid MAP_KEY` on the documented URL — endpoint and path format confirmed correct, only the key is missing |
 | FIRMS data_availability | **Reachable** | `401 Invalid MAP_KEY`, same conclusion |
-| EOG VNF portal | **200 OK** | Page loads; data download needs a free account |
+| EOG VNF portal | **200 OK** | Page loads. Data download needs a licence since 10 Jan 2025 (free for academic use, signed agreement + approval) — corrected 2026-09-28 |
 | Open-Meteo | **200 OK, full JSON** | No key needed. Works today, verified with a real query at Jamnagar |
 | MOSDAC (INSAT-3D) | **200 OK** | Portal reachable; data needs registration |
 | FSI fire portal | **200 OK** | Reachable |
@@ -46,7 +52,7 @@ All are standard pip installs.
 ### Action on Overpass
 
 Don't build the ingest around Overpass. Download the Geofabrik India extract
-(`https://download.geofabrik.de/asia/india-latest.osm.pbf`, ~1.2 GB) and filter it
+(`https://download.geofabrik.de/asia/india-latest.osm.pbf`, ~1.7 GB) and filter it
 locally with `osmium`. It's faster, it won't time out mid-demo, and it gives you a
 reproducible snapshot instead of a live service that can be down when the judges
 are watching.
@@ -200,9 +206,15 @@ df["cluster"] = DBSCAN(eps=500, min_samples=5,
                        algorithm="ball_tree", n_jobs=2).fit_predict(np.c_[x, y])
 ```
 
-`ball_tree` matters. The default `auto` blew the container's memory at 330k points;
+~~`ball_tree` matters. The default `auto` blew the container's memory at 330k points;
 `ball_tree` handled 158k comfortably. At India scale you may need to **cluster state by
-state** and merge — sources never span state boundaries at 500 m.
+state** and merge — sources never span state boundaries at 500 m.~~
+
+**Corrected 2026-09-29.** The comparison above changed the data size as well as the
+algorithm, so it never showed that `ball_tree` helps. scikit-learn's DBSCAN stores every
+point's neighbour list whatever the tree, so memory grows with the square of cluster
+size. What bounds it is snapping detections to 375 m cells and passing `sample_weight`.
+Sources can also straddle state borders. See `CLAUDE.md` and `reports/stage1_5_spike.md`.
 
 `cluster == -1` is the noise label. Those are your Road A candidates, free.
 
@@ -330,7 +342,7 @@ denominator and the honest answer to the cloud question.
 |---|---|---|
 | Overpass unreachable / times out | **High** — already observed | Geofabrik extract, filtered offline. Already the recommended path |
 | EOG or MOSDAC registration is slow | Medium | Register day 1. System degrades without VNF (`temp_cov` drops, accuracy falls) but still runs |
-| DBSCAN memory blowup at national scale | **High** — already hit it | `algorithm="ball_tree"`, cluster state by state |
+| DBSCAN memory blowup at national scale | **High** — already hit it | Snap to 375 m cells + `sample_weight` (corrected 2026-09-29: `ball_tree` does not fix it) |
 | Co-located sources merge | **Certain** — 53/324 in the synthetic run | State it as a known limitation; hierarchical second pass if time |
 | Real accuracy well below 94.5% | **Certain** | Benchmark against 77%, not against the synthetic figure |
 | Anomaly false positives at scale | Medium | Two-pass confirmation is not optional |
