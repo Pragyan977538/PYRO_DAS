@@ -12,7 +12,7 @@ PY := .venv/bin/python
 BOOTSTRAP ?= python3.13
 endif
 
-.PHONY: help install db migrate psql test lint spike down clean logs
+.PHONY: help install db migrate psql test lint fixture spike down clean logs
 
 help:
 	@echo "FireWatch - build tasks (Windows: .\\make.ps1 <target>)"
@@ -22,6 +22,7 @@ help:
 	@echo "  make psql      open a psql shell in the db container"
 	@echo "  make test      run pytest"
 	@echo "  make lint      ruff check"
+	@echo "  make fixture   stage 1: write the synthetic test fixture to data/mock"
 	@echo "  make spike     stage 1.5: cluster one real year of FIRMS (no database)"
 	@echo "  make down      stop containers (data kept)"
 	@echo "  make clean     stop containers AND delete the volume"
@@ -56,6 +57,10 @@ test:
 
 lint:
 	$(PY) -m ruff check firewatch/ tests/ scripts/
+
+fixture:
+	@echo ">> stage 1: synthetic test fixture -> data/mock"
+	$(PY) scripts/generate_fixture.py
 
 spike:
 	@echo ">> stage 1.5: one real year of FIRMS, clustered three ways"

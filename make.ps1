@@ -111,6 +111,7 @@ function Show-Help {
     Write-Host '  psql      open a psql shell in the db container'
     Write-Host '  test      run pytest'
     Write-Host '  lint      ruff check'
+    Write-Host '  fixture   stage 1: write the synthetic test fixture to data\mock'
     Write-Host '  spike     stage 1.5: cluster one real year of FIRMS (no database)'
     Write-Host '  down      stop containers (data kept)'
     Write-Host '  clean     stop containers AND delete the volume'
@@ -173,6 +174,11 @@ try {
         'lint' {
             Assert-Venv
             Invoke-Native -FilePath $VenvPython -ArgumentList @('-m', 'ruff', 'check', 'firewatch/', 'tests/', 'scripts/')
+        }
+        'fixture' {
+            Assert-Venv
+            Write-Step 'stage 1: synthetic test fixture -> data\mock'
+            Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\generate_fixture.py')
         }
         'spike' {
             Assert-Venv

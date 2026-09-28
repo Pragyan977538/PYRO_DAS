@@ -35,8 +35,9 @@ differentiation and goes first. Stage 10's headline metric is not optional.
 |---|---|
 | 0 | Fixes done 2026-09-29. DB acceptance **pending Docker Desktop** |
 | 1.5 | Done 2026-09-29 — `reports/stage1_5_spike.md` (one year) |
-| 1.5b | Done 2026-09-29 — `reports/stage1_5b_multiyear.md` (three years, refineries, label census). **Awaiting review before Stage 3** |
-| 1, 2 | Not started. May proceed once Docker is up; they don't depend on the gate |
+| 1.5b | Done and approved 2026-09-29 — `reports/stage1_5b_multiyear.md`. Gate and three-class set approved |
+| 1 | Done 2026-09-29 — `firewatch/ingest/fixture.py`, `make fixture`; 24 fixture tests pass |
+| 2 | Blocked on a database: Docker Desktop, or native PostgreSQL + PostGIS |
 | 3–10 | Not started |
 
 ---
@@ -56,6 +57,7 @@ firewatch/
 ├── firewatch/
 │   ├── config.py               # env-driven; MOCK_MODE (fixture) flag lives here
 │   ├── db.py                   # connection pool, upsert helpers
+│   ├── grid.py                 # EPSG:7755 metres, 375 m cells, ERA5 cells: one implementation
 │   ├── ingest/
 │   │   ├── normalize.py        # column normalisation, SP/NRT dedupe
 │   │   ├── fixture.py          # synthetic test fixture + spike injector
@@ -126,12 +128,32 @@ pixels), **never point sources**. Plus `inject_spikes(history, ...)`, which adds
 excursions of known size and time to a real source's history and returns the ground
 truth.
 
-**Produces:** `firewatch/ingest/fixture.py`, `tests/test_fixture.py`
+**Produces:** `firewatch/ingest/fixture.py`, `firewatch/grid.py`,
+`scripts/generate_fixture.py` (`make fixture` → `data/mock`), `tests/test_fixture.py`
 
 **Accept when:** `make test` normalises fixture rows from both sensors through
 `normalize.py`, and injected spikes round-trip to their ground truth.
 
 **Blocked by:** Stage 0. **Effort:** half a day.
+
+**Result (2026-09-29):** done; 24 tests. The fixture is 2 years with ~33k
+detections, generated in a few seconds and deterministic per seed. It reproduces
+what real data taught us, and the tests pin each property:
+- 32% of detections at night
+- VNF temperatures on 9% of detections
+- raw DBSCAN chains the paddy belt into one blob wider than 10 km
+- the recurrence gate drops the belt, keeps the refinery inside it, and refuses
+  both the five-month blowout and the new flare
+
+The scripted events are Road A and Road C test cases: a furnace fire on two passes,
+a flare blast on one, a warehouse fire outside a fence, a Baghjan-dated blowout, and
+a new flare. It also writes mock OSM facilities and land cover for Stage 2's mock
+mode.
+
+A fixture test caught a projection bug that affected every stage: the per-point
+equirectangular formula sheared distances by ~300 m per 500 m north–south. It is
+now EPSG:7755 in `firewatch/grid.py`, and the spikes were rerun (see CLAUDE.md,
+changed decision 17).
 
 ---
 
@@ -157,12 +179,13 @@ Stage 3.
 
 **Result (2026-09-29):** both problems are real.
 - **Problem 1.** On one year the paddy belt fragments into thousands of field
-  clusters, with 57% of its detections inside "sources". On three years (Stage 1.5b)
-  it merges into **one 400 km cluster** holding 97% of them.
-- **Problem 2.** `ball_tree` = `kd_tree` = 1,258 MB, and memory grows faster than the
+  clusters, with 60% of its detections inside "sources". On three years (Stage 1.5b)
+  it merges into **one 369 km cluster** holding 97% of them.
+- **Problem 2.** `ball_tree` ≈ `kd_tree` ≈ 1.32 GB, and memory grows faster than the
   data.
 - The gated method matches 99% of FIRMS-static detections.
-- Proposed gate: ≥ 4 months on ≥ 10 days within a year, in ≥ 2 years.
+- Proposed gate: ≥ 4 months on ≥ 10 days within a year, in ≥ 2 years (moved to ≥ 3
+  months in Stage 1.5b).
 
 Full numbers are in `reports/stage1_5_spike.md`.
 
@@ -179,13 +202,15 @@ sources* each OSM label group can label.
 `reports/stage1_5b_multiyear.md`, `reports/stage1_5b/*`
 
 **Result (2026-09-29):**
-- **The gate is confirmed unchanged:** ≥ 4 months, ≥ 10 days, in ≥ 2 years.
-  - 461 sources, with 0.30% of the paddy belt misrouted.
-  - GIHS recall 75%, with 87% of sources on a GIHS site.
-  - All three refineries found, with 81%, 84% and 92% of their detections covered.
-- **Raw DBSCAN** merges the belt into one 400 km cluster.
-- **Label census:** mining 153, heavy industry 214, oil and gas 28, kiln 2. That
-  supports the proposed three-class Model 1 (Stage 4).
+- **The gate is ≥ 3 months, ≥ 10 days, in ≥ 2 years.** The one-year proposal said
+  4 months; a pre-set rule moved it after the three-year sweep (F1 81.6% vs 80.4%).
+  - 477 sources, with 0.01% of the paddy belt misrouted.
+  - GIHS recall 78%, with 86% of sources on a GIHS site.
+  - All three refineries found, with 84%, 90% and 97% of their detections covered.
+- **Raw DBSCAN** merges the belt into one 369 km cluster.
+- **Label census:** mining 163, heavy industry 215, oil and gas 27, kiln 2. That
+  supports the three-class Model 1 (Stage 4).
+- All numbers are from reruns with EPSG:7755 distances.
 
 **Stage 3 does not start until the user has reviewed this.**
 
@@ -229,12 +254,11 @@ If VNF is loaded, record its real coverage. It will be far below the old mock's 
 
 **Build:**
 - 375 m cells.
-- The recurrence gate: within a year, ≥ 4 distinct months on ≥ 10 distinct days, in
-  at least 2 years. It was confirmed on 2021–2023 (Stage 1.5b) and is recalibrated
-  here against GIHS on the full archive.
+- The recurrence gate: within a year, ≥ 3 distinct months on ≥ 10 distinct days, in
+  at least 2 years (Stage 1.5b), recalibrated here against GIHS on the full archive.
 - DBSCAN on gated cells (`eps=500` m, `min_samples=5` by weight, `sample_weight`).
 - A 20 km footprint cap, as a backstop only: the widest gated source in 2023 was
-  6.8 km.
+  5.8 km.
 - NaN-safe fingerprints.
 - Baselines keyed `instrument | daynight | season`, with the n ≥ 30 fallback
   (→ `instrument | daynight` → source-wide).
@@ -272,12 +296,12 @@ It also reports how many co-located sources merge.
 
 ## Stage 4 — Weak labels and Model 1
 
-**Classes (proposed in Stage 1.5b, pending the user's review):** the label census counted
+**Classes (approved 2026-09-29, from the Stage 1.5b label census):** the census counted
 the registry sources each group can label.
-- **Mining and coal fires:** 153.
-- **Heavy industry:** 214 — thermal power, steel, cement, smelters and other works,
+- **Mining and coal fires:** 163.
+- **Heavy industry:** 215 — thermal power, steel, cement, smelters and other works,
   merged because captive power plants make them inseparable by label.
-- **Oil and gas:** 28 — thin, so its recall is reported separately. If that recall is
+- **Oil and gas:** 27 — thin, so its recall is reported separately. If that recall is
   unusable, the map names the nearest OSM oil and gas facility instead; that is a
   display lookup, not a class.
 - **Kiln:** dropped.

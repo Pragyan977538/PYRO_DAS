@@ -33,8 +33,10 @@ Two clocks.
 across multiple years — not just in one season — are clustered into physical sources.
 Each source gets a *fingerprint* (persistence, seasonality, FRP distribution, temperature
 where VNF has it) and a *baseline* (median, MAD, p99 — keyed by instrument × day/night ×
-season). One XGBoost model classifies each source: flare, furnace, kiln, mining, forest,
-cropland. The output is the **registry**.
+season). One XGBoost model classifies each source: **mining and coal fires**, **heavy
+industry**, or **oil and gas**. The output is the **registry**. Industrial vs forest vs
+agricultural at the detection level (deliverable i) comes from the gate, Road A's rules
+and Road C, not from these sub-types.
 
 **Online, every three hours.** Each new detection asks one question: *is there a known
 source within 500 m?*
@@ -82,30 +84,26 @@ nothing. Concretely:
 
 ### Weak-label sources, class by class
 
-Counts are OSM objects in India (Geofabrik taginfo, 2026-09-29). Where a class has no
-honest label source, say so — never invent labels to fill it.
+Approved 2026-09-29, from a census of how many *registry sources* each group actually
+labels (the 477 sources of the 2021–2023 gate; `reports/stage1_5b_multiyear.md`). A
+source takes the first group, in table order, with an OSM object within 1 km. Where a
+class has no honest label source, say so — never invent labels to fill it.
 
-**Proposed revision, pending the user's review** (`reports/stage1_5b_multiyear.md`).
-The label census counted how many *registry sources* each group actually labels:
-mining 153, heavy industry 214 (thermal power 39 + steel/cement 6 + other works 169),
-oil and gas 28, kiln 2. That supports three Model 1 classes:
-- mining and coal fires
-- heavy industry — power, steel and smelters are merged, because captive power plants
-  make them inseparable by label
-- oil and gas — thin, so its recall is reported separately
+| Model 1 class | Label sources | Sources labelled | Caveat |
+|---|---|---|---|
+| oil_gas | `industrial=refinery`, `industrial=oil`, `man_made=petroleum_well`, `man_made=flare` | 27 | Thin, and the class NTRO cares most about: report its recall separately. If it is unusable, the map names the nearest OSM oil and gas facility — a display lookup, never a class |
+| heavy_industry | `power=plant` with `plant:source` coal/gas/oil/diesel/biomass; `man_made=works`; `industrial=steel`/`cement`/`factory`; `landuse=industrial`; WRI Global Power Plant Database (thermal) | 215 | Power, steel, cement and smelters are merged: captive power plants inside steel works and smelters make them inseparable by label |
+| mining | `landuse=quarry`, `resource=coal`, `industrial=mine`, `man_made=mineshaft` | 163 | Coal-seam fires (Jharia) are fires *in* mines, not mining activity. They are labelled mining, and the report says so |
+| recurrent_biomass (conditional) | WorldCover cropland (40) or tree cover (10) at the source, never season | — | Added only if Stage 2 finds ≥ ~30 registry sources on cropland or forest with no industrial label |
+| — | FIRMS `type=2`, GIHS | — | Evaluation only, never labels |
 
-Kiln is dropped; both of its labels were wrong. Recurrent biomass becomes a fourth class
-only if WorldCover finds at least ~30 registry sources on cropland or forest.
-
-| Class | Label sources | Caveat |
-|---|---|---|
-| flare | `industrial=refinery` (35), `industrial=oil` (40), `man_made=petroleum_well` (37), `man_made=flare` (22) | OSM has only 22 flare tags in all of India. Oil-and-gas facility polygons are the fallback, and they also hold process heaters, so flare labels are noisy. The EOG flare list needs the VNF licence |
-| furnace | `power=plant` with `plant:source` = coal (293) / gas (69) / oil; WRI Global Power Plant Database (thermal) | Steel and cement are nearly unlabelled in OSM (`product=steel` 5, `product=cement` 3). Name matching or the GEM steel tracker would be needed; flag it if used |
-| kiln | `man_made=kiln` (2,688), `industrial=brickyard` (2,841), `industrial=brickworks` (173) | Labels exist; **whether VIIRS detects brick kilns at 375 m is unverified.** If too few labelled kiln sources reach the registry, drop or merge the class |
-| mining | `landuse=quarry` (10,487), `resource=coal` (1,622), `industrial=mine` (150) | Coal-seam fires (Jharia) are fires *in* mines, not mining activity. They are labelled mining, and the report says so |
-| forest | WorldCover tree cover (class 10); FSI fire alerts | FSI alerts are FIRMS points inside forest boundaries with partial state feedback. Weak, not validated |
-| cropland | WorldCover cropland (class 40) only | Never season-based |
-| — | FIRMS `type=2`, GIHS | Evaluation only, never labels |
+- **Dropped:** kiln (2 sources labelled, both wrong — one is a Raniganj coal fire).
+  Flare and furnace are no longer separate classes.
+- **Not trained on:** the 70 sources with no OSM label (74% on GIHS sites, mostly
+  unmapped industry). They are predicted.
+- **Road A, not Model 1:** forest and cropland fires at the detection level come from
+  WorldCover and FSI alerts. FSI alerts are FIRMS points inside forest boundaries with
+  partial state feedback: weak, not validated.
 
 ### Baselines are per source, never per source type
 
@@ -146,31 +144,34 @@ all normal readings sit above the median by definition.
 
 Raw DBSCAN over detections turns crop and forest landscapes into "sources". On three
 real years (2021–2023, `reports/stage1_5b_multiyear.md`):
-- It merged **the whole Punjab paddy belt into one cluster**: 365,996 detections,
-  400 km corner to corner, 99% in stubble months, none carrying FIRMS' static flag.
-- **97%** of the belt's detections, and **74.5%** of all detections in India, would
+- It merged **the whole Punjab paddy belt into one cluster**: 379,180 detections,
+  369 km corner to corner, 98% in stubble months, none carrying FIRMS' static flag.
+- **97%** of the belt's detections, and **75.5%** of all detections in India, would
   skip Road A.
-- On one year the belt merely fragmented into 2–10 km field clusters (57% inside a
+- On one year the belt merely fragmented into 2–10 km field clusters (60% inside a
   "source"). The chaining grows with history.
 
-The gated method keeps 461 sources and misroutes 0.30% of the belt. Instead:
+The gated method keeps 477 sources and misroutes 0.01% of the belt. Instead:
 
-1. **Project to metres.** One degree of longitude is 111 km at the equator and 85 km at
-   Kashmir's latitude, so `eps` in degrees means different distances across India.
+1. **Project to metres with EPSG:7755** (WGS 84 / India NSF LCC), always through
+   `firewatch.grid.to_metres`, the one implementation. It is conformal, so a local
+   distance is right in every direction, with scale error within ~2% across India.
+   Degrees are not a distance: one degree of longitude is 111 km at the equator and
+   85 km at Kashmir's latitude.
 
-   ```python
-   x = lon * 111320 * np.cos(np.radians(lat))
-   y = lat * 110540
-   ```
+   **Never use `x = lon * 111320 * cos(lat)` with each point's own latitude.** It
+   shears the plane: at Jharia, two points 500 m apart north–south come out 586 m
+   apart, the whole scale of a DBSCAN neighbourhood.
 
 2. **Snap to ~375 m cells** (the VIIRS pixel) and aggregate: detections, distinct days,
    nights, months and years.
 3. **Gate on recurrence:** keep cells that burn across multiple years *and* across much of
-   the year. Within a year, **≥ 4 distinct months on ≥ 10 distinct days, in at least 2
-   years**. Proposed from one year, then confirmed unchanged on 2021–2023. That setting
-   gives:
-   - 461 sources, with 0.30% of the paddy belt misrouted
-   - 75% of active GIHS sites recovered, and 87% of sources on a GIHS site
+   the year. Within a year, **≥ 3 distinct months on ≥ 10 distinct days, in at least 2
+   years**. One year proposed ≥ 4 months. A rule fixed before the three-year sweep —
+   keep the proposal unless the best two-year setting beats it by more than one F1
+   point — moved it to 3 (81.6% vs 80.4%). On 2021–2023 that gives:
+   - 477 sources, with 0.01% of the paddy belt misrouted
+   - 78% of active GIHS sites recovered, and 86% of sources on a GIHS site
    - Reliance, Nayara and HMEL all found
 
    Requiring all 3 of 3 years is too strict, because flares are intermittent. The
@@ -184,10 +185,10 @@ The gated method keeps 461 sources and misroutes 0.30% of the belt. Instead:
 
 **Memory:** scikit-learn's DBSCAN materialises every point's neighbour list, so memory
 grows with the square of cluster size *whatever the tree algorithm*. Measured:
-- `ball_tree` and `kd_tree` gave identical labels and identical memory (1,258 MB on
-  one year), and `"auto"` already picks `kd_tree`.
-- Three years took 7.8 GB and 310 s, against 1.26 GB and 11 s for one. The full
-  2012–2024 archive would need about 48 GB raw.
+- `ball_tree` and `kd_tree` gave identical labels and the same memory (1,321 and
+  1,323 MB on one year), and `"auto"` already picks `kd_tree`.
+- Three years took 8.6 GB and 277 s, against 1.3 GB and 12 s for one. The full
+  2012–2024 archive would need about 55 GB raw.
 - The gated method took 271 MB.
 
 `ball_tree` is kept for consistency; gridding plus `sample_weight` is what bounds
@@ -305,8 +306,9 @@ government agency.
 
 - Config is environment-driven via `firewatch/config.py`. No hardcoded paths, no
   hardcoded keys, ever.
-- All geometry stored in EPSG:4326. Reproject to metres (EPSG:7755 or the equirectangular
-  approximation above) for distance work.
+- All geometry stored in EPSG:4326. Reproject to metres with EPSG:7755 via
+  `firewatch.grid` for all distance work — never the per-point equirectangular
+  shortcut.
 - Work in the Python 3.13 virtualenv: `py -3.13 -m venv .venv`.
 - Every stage exposes the same target in both runners — `make <target>` and
   `.\make.ps1 <target>` (Windows PowerShell 5.1 compatible) — plus a check script.
@@ -335,29 +337,30 @@ government agency.
 **Real data, three years** — VIIRS over India, 2021–2023, 3,906,061 detections, from
 `reports/stage1_5b_multiyear.md`:
 
-- Raw DBSCAN put **365,996 detections in one cluster spanning the paddy belt**, and
+- Raw DBSCAN put **379,180 detections in one cluster spanning the paddy belt**, and
   97% of the belt's detections inside a "source".
-- Gated (≥ 4 months, ≥ 10 days, ≥ 2 years): **461** sources.
-  - Paddy belt **0.30%** misrouted.
-  - GIHS recall **75%**, with **87%** of sources on a GIHS site.
-  - FIRMS-static coverage **98.9%**.
-  - Reliance, Nayara and HMEL all found.
-- Registry sources labelled by OSM: mining 153, heavy industry 214, oil and gas 28,
+- Gated (≥ 3 months, ≥ 10 days, ≥ 2 years): **477** sources.
+  - Paddy belt **0.01%** misrouted.
+  - GIHS recall **78%**, with **86%** of sources on a GIHS site.
+  - FIRMS-static coverage **99.1%**.
+  - Reliance (84%), Nayara (90%) and HMEL (97%) all found.
+- Registry sources labelled by OSM: mining 163, heavy industry 215, oil and gas 27,
   kiln 2.
 
 **Real data, one year** — VIIRS over India, 2023, 1,170,878 detections, from
 `reports/stage1_5_spike.md`:
 
 - **29.0%** of detections are at night; **12.7%** carry FIRMS' `type=2` static flag.
-- Raw DBSCAN: **33,963** "sources"; **57%** of the Punjab paddy belt inside one (72% in
-  a ten-year stand-in); **46%** of all detections would skip Road A.
-- Gated cells (≥ 6 months, ≥ 10 days): **442** sources, the widest 6.8 km.
-  - Paddy belt **1.8%**, Jharia **97.8%**.
-  - **99.1%** of FIRMS-static detections within 500 m of a source.
-  - **83%** of sources on a GIHS site; GIHS recall **65%** of active objects.
-- Memory: `ball_tree` = `kd_tree` = **1,258 MB**; gated **271 MB**. The raw archive
-  extrapolates to ~45–70 GB.
-- Jamnagar's largest flare group was detected on **111** days, not ~340 nights.
+- Raw DBSCAN: **34,797** "sources"; **60%** of the Punjab paddy belt inside one (73% in
+  a ten-year stand-in); **47%** of all detections would skip Road A.
+- Gated cells (≥ 6 months, ≥ 10 days): **443** sources, the widest 5.8 km.
+  - Paddy belt **1.8%**, Jharia **98.0%**.
+  - **99.2%** of FIRMS-static detections within 500 m of a source.
+  - **81%** of sources on a GIHS site; GIHS recall **65%** of active objects.
+- Memory: `ball_tree` ≈ `kd_tree` ≈ **1.32 GB**; gated **271 MB**.
+- Jamnagar's largest flare group was detected on **112** days, not ~340 nights.
+
+All real-data numbers are from reruns with EPSG:7755 distances (changed decision 17).
 
 **Synthetic benchmark** (`reference/verify_pipeline.py`) — upper bounds only. The benchmark
 draws from the distributions the model learns, *and* it models stubble and forest fires as
@@ -377,13 +380,13 @@ is kept here so the history isn't lost.
 
 | # | Old rule | New rule | Why |
 |---|---|---|---|
-| 1 | DBSCAN on raw detections; `ball_tree` fixes memory; cluster state by state | 375 m cells, recurrence gate, DBSCAN with `sample_weight`, footprint cap; no state partitioning | Stages 1.5/1.5b, real data: on 2021–2023, raw DBSCAN merged the whole Punjab paddy belt into one 400 km cluster (97% of its detections). The synthetic benchmark hid this by modelling biomass fires as point sources. `ball_tree` and `kd_tree` used identical memory; the 330k-vs-158k comparison changed the data, not just the algorithm |
+| 1 | DBSCAN on raw detections; `ball_tree` fixes memory; cluster state by state | 375 m cells, recurrence gate, DBSCAN with `sample_weight`, footprint cap; no state partitioning | Stages 1.5/1.5b, real data: on 2021–2023, raw DBSCAN merged the whole Punjab paddy belt into one 369 km cluster (97% of its detections). The synthetic benchmark hid this by modelling biomass fires as point sources. `ball_tree` and `kd_tree` used identical memory; the 330k-vs-158k comparison changed the data, not just the algorithm |
 | 2 | Single-tier, two-consecutive-pass confirmation | Provisional alert on one extreme pass; confirmed alert on two consecutive breaching passes | Short blasts, the deadliest events, often burn out between passes |
 | 3 | Road A sites repeating ~20 nights are promoted into the registry | Promoted sources stay provisional and keep alerting until they look like stable infrastructure; Baghjan 2020 is the regression test | A long-burning accident would become "normal" within a month; a competing team's repo documents exactly this failure at Baghjan |
 | 4 | Baselines keyed `sensor \| daynight \| season` (per satellite) | Keyed `instrument \| daynight \| season` | S-NPP delivery ends 1 Nov 2026; NOAA-21 has little history; VIIRS units share one algorithm |
 | 5 | "Model 1 must never see location features" | "No label may be built from a model input" — covers location, FIRMS `type`, season | The narrow rule missed other circular labels |
 | 6 | Two XGBoost models: Model 1 plus a Road A classifier | One learned model; Road A is rules plus physics whose rule path is the UI's reason text | Road A's features are the layers its labels would be built from |
-| 7 | Six classes, but weak-label SQL that yields only industrial / forest / cropland | Explicit tag → class table with India counts; classes without an honest label source are flagged, not invented | Flare vs furnace vs kiln vs mining had no label source at all |
+| 7 | Six classes (flare, furnace, kiln, mining, forest, cropland), but weak-label SQL that yields only industrial / forest / cropland | Three Model 1 classes chosen by a census of labelled registry sources: oil and gas 27, heavy industry 215, mining 163. Kiln dropped; forest and cropland handled by Road A | OSM has 22 flare tags in India; power and steel can't be separated by label; kiln labels at sources were wrong. Approved 2026-09-29 |
 | 8 | `MOCK_MODE=1` by default; the mock is the demo dataset | Real data first; the mock shrinks to a test fixture; spikes injected into real histories | Ten years of FIRMS for India is free; a synthetic world hid problem 1 |
 | 9 | Observability written per pass from swath and cloud mask | ERA5 cloud cover at overpass time via Open-Meteo, as a proxy | FIRMS publishes no swaths or cloud masks |
 | 10 | VNF via a free account, required in live mode | Licence-gated and optional; the pipeline runs fully without it | EOG moved VNF behind a licence on 10 Jan 2025 |
@@ -393,3 +396,4 @@ is kept here so the history isn't lost.
 | 14 | Persistence = distinct detection dates / observed nights | Nights detected / nights observable | Day dates over a night denominator can exceed 1 |
 | 15 | Online basemap | Offline basemap (PMTiles India extract) | Venue internet at the finale is unreliable |
 | 16 | FIRMS `type`, `version` and product not stored | Stored as `firms_type`, `version`, `product`; SP supersedes NRT | Needed for evaluation, and to stop double counting |
+| 17 | Metres from `x = lon * 111320 * cos(lat)`, each point's own latitude | EPSG:7755 through `firewatch.grid.to_metres`, the one implementation | The per-point cosine shears the plane: at Jharia, a 500 m north–south pair measured 586 m. A Stage 1 test caught it on 2026-09-29, and every spike was rerun with the fix |

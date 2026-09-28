@@ -74,8 +74,14 @@ REGION_COLORS = ["#2a78d6", "#eb6834", "#1baf7a"]
 # --------------------------------------------------------------------------- data
 
 def to_metres(lat: np.ndarray, lon: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Equirectangular metres, exactly as CLAUDE.md specifies for clustering."""
-    return lon * 111320 * np.cos(np.radians(lat)), lat * 110540
+    """EPSG:7755 metres, via the shared grid module.
+
+    The first runs used ``lon * 111320 * cos(lat)`` with each point's own latitude,
+    which shears the plane (~300 m east-west per 500 m north-south at India's
+    longitudes). All reported numbers come from reruns with this projection.
+    """
+    from firewatch.grid import to_metres as project
+    return project(lat, lon)
 
 
 def fetch(year: int, raw_dir: Path) -> list[Path]:
