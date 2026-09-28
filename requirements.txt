@@ -1,0 +1,29 @@
+# --- data ---
+pandas==2.2.3
+numpy==2.1.3
+scipy==1.14.1
+
+# --- geospatial ---
+geopandas==1.0.1
+shapely==2.0.6
+pyproj==3.7.0
+
+# --- ml ---
+scikit-learn==1.5.2
+xgboost==2.1.3
+
+# --- db ---
+SQLAlchemy==2.0.36
+psycopg2-binary==2.9.10
+
+# --- api (stage 8) ---
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# --- plumbing ---
+requests==2.32.3
+python-dotenv==1.0.1
+
+# --- dev ---
+pytest==8.3.4
+ruff==0.8.4

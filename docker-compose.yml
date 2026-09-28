@@ -1,0 +1,25 @@
+services:
+  db:
+    image: timescale/timescaledb-ha:pg16
+    container_name: firewatch-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-firewatch}
+      POSTGRES_USER: ${POSTGRES_USER:-firewatch}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-firewatch}
+      # India-wide spatial work; keep the planner honest about disk
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - firewatch_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-firewatch} -d ${POSTGRES_DB:-firewatch}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    shm_size: 1gb
+
+volumes:
+  firewatch_pgdata:
