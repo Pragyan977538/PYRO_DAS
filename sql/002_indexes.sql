@@ -29,7 +29,21 @@ CREATE INDEX IF NOT EXISTS detections_event_id   ON detections (event_id)
     WHERE event_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS detections_road       ON detections (road)
     WHERE road IS NOT NULL;
-CREATE INDEX IF NOT EXISTS detections_sensor_dn  ON detections (sensor, daynight);
+-- Baselines are keyed by instrument, not satellite.
+CREATE INDEX IF NOT EXISTS detections_instrument_dn ON detections (instrument, daynight);
+-- supersede_nrt deletes NRT rows by sensor and time range after every SP load.
+CREATE INDEX IF NOT EXISTS detections_product_sensor_time
+    ON detections (product, sensor, acq_datetime);
+
+-- A hypertable indexes its time column automatically; a plain table does not.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'timescaledb') THEN
+        CREATE INDEX IF NOT EXISTS detections_acq_datetime
+            ON detections (acq_datetime DESC);
+    END IF;
+END
+$$;
 
 CREATE INDEX IF NOT EXISTS sources_cls           ON sources (cls);
 CREATE INDEX IF NOT EXISTS sources_state         ON sources (state_code);
@@ -39,8 +53,6 @@ CREATE INDEX IF NOT EXISTS sources_provisional   ON sources (provisional)
 CREATE INDEX IF NOT EXISTS events_status         ON events (status);
 CREATE INDEX IF NOT EXISTS events_risk           ON events (risk_score DESC NULLS LAST);
 CREATE INDEX IF NOT EXISTS events_last_seen      ON events (last_seen DESC);
-
-CREATE INDEX IF NOT EXISTS observability_cell_date ON observability (cell_id, obs_date);
 
 CREATE INDEX IF NOT EXISTS assets_type          ON critical_assets (asset_type);
 CREATE INDEX IF NOT EXISTS osm_industrial_tag   ON osm_industrial (tag);

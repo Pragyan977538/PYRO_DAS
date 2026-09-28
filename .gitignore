@@ -2,6 +2,7 @@
 data/
 models/
 reports/*.json
+reports/**/*.json
 *.pbf
 *.osm
 __pycache__/

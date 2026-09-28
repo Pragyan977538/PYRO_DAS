@@ -5,10 +5,12 @@ has exactly one side effect: it reads ``.env`` if present. Nothing else runs at
 import time, so tests can construct their own ``Settings`` without touching the
 filesystem.
 
-Why the mock/live split matters: stages 1-9 are developed against the synthetic
-generator, so credentials are optional while ``MOCK_MODE=1``. The moment live data
-is switched on they become mandatory, and failing loudly at startup is far cheaper
-than discovering a missing key halfway through a ten-year backfill.
+Why no credential is required at startup: real data is the default, and the FIRMS
+archive for India is public, so most of the pipeline needs no key at all. Each
+credential is demanded by the one client that uses it -- ``require_firms_key()`` for
+FIRMS API pulls, ``vnf_enabled`` for the optional VNF enrichment -- and the error
+names the missing variable, so a missing key still fails loudly before any work
+starts rather than halfway through a backfill.
 """
 
 from __future__ import annotations
@@ -80,9 +82,32 @@ class Settings:
     def mock_dir(self) -> Path:
         return self.data_dir / "mock"
 
+    @property
+    def raw_dir(self) -> Path:
+        return self.data_dir / "raw"
 
-#: Variables that are only required once live data is switched on.
-LIVE_REQUIRED = ("FIRMS_MAP_KEY", "EOG_USERNAME", "EOG_PASSWORD")
+    @property
+    def vnf_enabled(self) -> bool:
+        """True when EOG credentials are present.
+
+        VNF is optional enrichment: it is licence-gated and night-only, so the
+        pipeline must run end to end without it and simply skip the join.
+        """
+        return bool(self.eog_username and self.eog_password)
+
+    def require_firms_key(self) -> str:
+        """The FIRMS MAP_KEY, or a ``ConfigError`` naming it.
+
+        Only API pulls need it -- 2025 onward and the live NRT feed. The yearly
+        archive is public, so nothing asks for the key until an API client runs.
+        """
+        if not self.firms_map_key:
+            raise ConfigError(
+                "FIRMS_MAP_KEY is not set. It is needed only for FIRMS API pulls "
+                "(2025 onward and live NRT); the yearly archive needs no key. "
+                "Get one free at https://firms.modaps.eosdis.nasa.gov/api/map_key/"
+            )
+        return self.firms_map_key
 
 
 def load_settings() -> Settings:
@@ -91,7 +116,7 @@ def load_settings() -> Settings:
     Raises ``ConfigError`` naming the offending variable rather than failing
     later with an opaque ``None``.
     """
-    mock_mode = _env_bool("MOCK_MODE", True)
+    mock_mode = _env_bool("MOCK_MODE", False)
 
     database_url = _env("DATABASE_URL")
     if not database_url:
@@ -99,14 +124,15 @@ def load_settings() -> Settings:
             "DATABASE_URL is not set. Copy .env.example to .env and edit it."
         )
 
-    if not mock_mode:
-        missing = [k for k in LIVE_REQUIRED if not _env(k)]
-        if missing:
-            raise ConfigError(
-                "MOCK_MODE=0 requires live credentials, but these are empty: "
-                + ", ".join(missing)
-                + ". Set them in .env, or set MOCK_MODE=1 to use synthetic data."
-            )
+    # Half a login is a typo, not a choice to skip VNF -- say so now rather than
+    # letting the join silently turn itself off.
+    eog_user, eog_pass = _env("EOG_USERNAME"), _env("EOG_PASSWORD")
+    if bool(eog_user) != bool(eog_pass):
+        missing = "EOG_PASSWORD" if eog_user else "EOG_USERNAME"
+        raise ConfigError(
+            f"{missing} is empty but its partner is set. Set both EOG_USERNAME and "
+            "EOG_PASSWORD for VNF enrichment, or leave both empty to run without it."
+        )
 
     data_dir = Path(_env("DATA_DIR", "./data") or "./data")
     if not data_dir.is_absolute():

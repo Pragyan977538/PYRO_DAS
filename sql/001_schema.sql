@@ -1,8 +1,20 @@
--- FireWatch schema (Stage 0)
+-- FireWatch schema
 -- Idempotent: safe to re-run.
+--
+-- TimescaleDB is optional. The docker image ships it, and there detections
+-- becomes a hypertable; on a plain PostgreSQL + PostGIS install (the fallback
+-- while Docker is unavailable) detections stays an ordinary table. At a few
+-- million rows either is fine -- nothing downstream depends on the difference.
 
 CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS timescaledb;
+
+DO $$
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS timescaledb;
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'timescaledb unavailable (%): detections stays a plain table', SQLERRM;
+END
+$$;
 
 -- ===========================================================================
 -- detections — one row per satellite hot-pixel observation
@@ -12,9 +24,21 @@ CREATE EXTENSION IF NOT EXISTS timescaledb;
 -- maps both onto these two columns so downstream joins cannot silently drop
 -- half the archive.
 --
--- vnf_* arrive from a separate VIIRS Nightfire join and are NULL for roughly
--- 55% of rows (night-only product, plus Planck-fit failures on cooler
+-- Provenance, set by firewatch/ingest/normalize.py:
+--   instrument  VIIRS | MODIS -- baselines are keyed by instrument, not
+--               satellite, because S-NPP delivery ends on 1 Nov 2026.
+--   product     SP (archive, science-quality) | NRT (live). SP supersedes NRT
+--               for any sensor-day both cover, so no pixel is counted twice.
+--   firms_type  FIRMS' own inferred type (0 vegetation, 1 volcano, 2 static
+--               land source, 3 offshore); archive only, NULL for NRT. It is
+--               derived from recurrence, so it is an EVALUATION COMPARATOR ONLY:
+--               never a model feature and never a training label.
+--
+-- vnf_* arrive from the optional VIIRS Nightfire join and are NULL for most
+-- rows (night-only product, licence-gated, Planck-fit failures on cooler
 -- sources). Never impute them.
+--
+-- road: A = 1 (no known source), B = 2 (normal), C = 3 (anomaly).
 -- ===========================================================================
 CREATE TABLE IF NOT EXISTS detections (
     detection_id  BIGINT GENERATED ALWAYS AS IDENTITY,
@@ -23,14 +47,18 @@ CREATE TABLE IF NOT EXISTS detections (
     longitude     DOUBLE PRECISION NOT NULL,
     geom          GEOMETRY(Point, 4326) NOT NULL,
     sensor        TEXT        NOT NULL,
+    instrument    TEXT        NOT NULL CHECK (instrument IN ('VIIRS', 'MODIS')),
     satellite     TEXT,
-    daynight      CHAR(1),
+    product       TEXT        NOT NULL CHECK (product IN ('SP', 'NRT')),
+    version       TEXT,
+    daynight      CHAR(1)     CHECK (daynight IN ('D', 'N')),
     frp           REAL,
     bt4           REAL,
     bt5           REAL,
     scan          REAL,
     track         REAL,
     confidence    TEXT,
+    firms_type    SMALLINT    CHECK (firms_type IN (0, 1, 2, 3)),
     vnf_temp_k    REAL,
     vnf_area_m2   REAL,
     vnf_rh_mw     REAL,
@@ -43,27 +71,40 @@ CREATE TABLE IF NOT EXISTS detections (
     PRIMARY KEY (detection_id, acq_datetime)
 );
 
-SELECT create_hypertable(
-    'detections', 'acq_datetime',
-    chunk_time_interval => INTERVAL '30 days',
-    if_not_exists => TRUE
-);
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'timescaledb') THEN
+        PERFORM create_hypertable(
+            'detections', 'acq_datetime',
+            chunk_time_interval => INTERVAL '30 days',
+            if_not_exists => TRUE
+        );
+    END IF;
+END
+$$;
 
 -- Natural key for idempotent backfill: the same pixel from the same sensor at
 -- the same instant is the same observation, however many times we fetch it.
--- Keyed on the raw lat/lon doubles rather than geom -- geometry equality under
--- a btree opclass is bounding-box based and would collapse distinct pixels.
+-- Keyed on the raw lat/lon doubles rather than geom, so equality is exact.
 -- TimescaleDB additionally requires the partitioning column in any unique index.
+-- It does NOT catch an SP/NRT pair for the same pixel -- reprocessing moves the
+-- position slightly -- which is why SP supersedes NRT by sensor-day instead.
 CREATE UNIQUE INDEX IF NOT EXISTS detections_natural_key
     ON detections (sensor, acq_datetime, latitude, longitude);
 
 -- ===========================================================================
 -- sources — the registry. One row per persistent thermal source.
 --
+-- Built from 375 m cells that pass a multi-year recurrence gate, never from
+-- raw detections: raw clustering chains whole farm and forest landscapes into
+-- single "sources".
+--
 -- fingerprint: the feature vector Model 1 classifies on (thermal + temporal
 --              only; no location features, or the weak-supervision labels leak).
--- baselines:   nested by "sensor|daynight|season" -> {med, mad, p99, n}.
+-- baselines:   nested by "instrument|daynight|season" -> {med, mad, p99, n}.
 --              Per SOURCE, never per source type.
+-- provisional: promoted from Road A. Keeps alerting until it looks like stable
+--              infrastructure -- an accident must never become "normal".
 -- ===========================================================================
 CREATE TABLE IF NOT EXISTS sources (
     source_id     SERIAL PRIMARY KEY,
@@ -108,19 +149,23 @@ CREATE TABLE IF NOT EXISTS events (
 -- ===========================================================================
 -- observability — were we even looking?
 --
--- Written on EVERY pass, whether or not anything burned. Two jobs: it stops
--- "no detection" being silently read as "no fire", and it is the denominator
--- for the persistence feature. Annual observability runs ~64%, dropping to
--- ~29% in the monsoon; using calendar nights instead understates every source
--- by about a third.
+-- Two jobs: it stops "no detection" being silently read as "no fire", and it
+-- is the denominator for persistence (nights detected / nights observable).
+--
+-- FIRMS publishes detections only -- no swath footprints, no cloud masks -- so
+-- this comes from ERA5 cloud cover at the overpass time, via Open-Meteo, per
+-- 0.25 degree ERA5 grid cell. Expected clear nights = sum(1 - cloud_frac). It
+-- is a reanalysis proxy, not a satellite measurement. Written for every
+-- cell-date whether or not anything burned. obs_date is the UTC date, the
+-- same convention as detections.acq_datetime.
 -- ===========================================================================
 CREATE TABLE IF NOT EXISTS observability (
-    cell_id      BIGINT      NOT NULL,
-    obs_date     DATE        NOT NULL,
-    sensor       TEXT        NOT NULL,
-    clear_looks  SMALLINT    NOT NULL DEFAULT 0,
-    total_passes SMALLINT    NOT NULL DEFAULT 0,
-    PRIMARY KEY (cell_id, obs_date, sensor)
+    cell_id     BIGINT   NOT NULL,
+    obs_date    DATE     NOT NULL,
+    daynight    CHAR(1)  NOT NULL CHECK (daynight IN ('D', 'N')),
+    cloud_frac  REAL     NOT NULL CHECK (cloud_frac BETWEEN 0 AND 1),
+    source      TEXT     NOT NULL DEFAULT 'era5',
+    PRIMARY KEY (cell_id, obs_date, daynight)
 );
 
 -- ===========================================================================
@@ -145,6 +190,10 @@ CREATE TABLE IF NOT EXISTS critical_assets (
 
 -- ===========================================================================
 -- Context layers
+--
+-- fsi_alerts are FIRMS points inside forest boundaries, with feedback from
+-- state forest departments on only some of them: weak forest labels, not
+-- ground truth.
 -- ===========================================================================
 CREATE TABLE IF NOT EXISTS osm_industrial (
     osm_id BIGINT PRIMARY KEY,
