@@ -33,11 +33,11 @@ differentiation and goes first. Stage 10's headline metric is not optional.
 
 | Stage | State |
 |---|---|
-| 0 | Fixes done 2026-09-29. DB acceptance **pending Docker Desktop** |
+| 0 | **Done 2026-09-29.** Acceptance passed on a real database: portable PostgreSQL 16.15 + PostGIS 3.6 (`scripts/local_postgres.ps1`); 86 passed, 1 skipped (hypertable test, TimescaleDB not in the portable build). Docker Desktop still to be installed for the demo |
 | 1.5 | Done 2026-09-29 — `reports/stage1_5_spike.md` (one year) |
 | 1.5b | Done and approved 2026-09-29 — `reports/stage1_5b_multiyear.md`. Gate and three-class set approved |
 | 1 | Done 2026-09-29 — `firewatch/ingest/fixture.py`, `make fixture`; 24 fixture tests pass |
-| 2 | Blocked on a database: Docker Desktop, or native PostgreSQL + PostGIS |
+| 2 | In progress 2026-09-29 |
 | 3–10 | Not started |
 
 ---

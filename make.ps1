@@ -140,7 +140,17 @@ try {
             }
         }
         'db' {
-            Assert-Docker
+            if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+                # No Docker: fall back to the portable PostgreSQL + PostGIS, if installed.
+                $local = Join-Path $env:LOCALAPPDATA 'firewatch\pgsql\bin\pg_ctl.exe'
+                if (-not (Test-Path -LiteralPath $local)) {
+                    throw ('Docker is not installed. Either install Docker Desktop, or run ' +
+                           '.\scripts\local_postgres.ps1 install for a portable database.')
+                }
+                Write-Step 'no Docker: using the portable PostgreSQL'
+                & (Join-Path $PSScriptRoot 'scripts\local_postgres.ps1') start
+                exit 0
+            }
             Write-Step 'starting database'
             Invoke-Native -FilePath 'docker' -ArgumentList @('compose', 'up', '-d', 'db')
             Write-Step 'waiting for healthy (timescale/postgis image is a large first pull)'

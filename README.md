@@ -34,6 +34,11 @@ Windows PowerShell (5.1 or 7):
 .\make.ps1 test
 ```
 
+**No Docker?** `.\scripts\local_postgres.ps1 install` sets up a portable PostgreSQL 16
++ PostGIS under `%LOCALAPPDATA%\firewatch`. It needs no admin rights and no service,
+downloads ~450 MB, and uses the credentials in `.env`. After that, `.\make.ps1 db`
+starts it whenever Docker is absent.
+
 Real data is the default. The FIRMS archive for India (2012-2024) is public, so
 nothing needs a key to start. A `FIRMS_MAP_KEY` is needed only for 2025 onward and
 the live feed. VIIRS Nightfire is optional enrichment. `MOCK_MODE=1` switches to
@@ -52,5 +57,5 @@ the synthetic test fixture.
 
 ## Status
 
-Stage 0 fixes done; DB acceptance waits on Docker Desktop.
-Stage 1.5 (real-data spike) done - awaiting review before Stage 3.
+Stage 0 done (acceptance passed on a real database). Stage 1 done.
+Stages 1.5 and 1.5b (real-data spikes) done and approved. Stage 2 in progress.
