@@ -1,15 +1,15 @@
 # Stage 1.5b - label census
 
-461 registry sources (recommended multi-year gate). A source is labelled by the first group with an OSM object within 1000 m.
+477 registry sources (recommended multi-year gate). A source is labelled by the first group with an OSM object within 1000 m.
 
 | Label group | OSM objects in India | Sources near any | Primary label: sources | Detections | On a GIHS site |
 |---|---|---|---|---|---|
-| oil_gas | 134 | 28 | 28 | 24,784 | 96% |
-| steel_cement | 39 | 6 | 6 | 6,379 | 100% |
-| thermal_power | 375 | 46 | 39 | 87,412 | 92% |
-| mining | 11,956 | 169 | 153 | 182,444 | 85% |
-| kiln | 5,617 | 8 | 2 | 9,048 | 50% |
-| industrial_other | 33,366 | 309 | 169 | 96,324 | 90% |
-| unlabelled | - | - | 64 | 23,138 | 80% |
+| oil_gas | 134 | 27 | 27 | 24,727 | 96% |
+| steel_cement | 39 | 5 | 5 | 6,274 | 100% |
+| thermal_power | 375 | 49 | 41 | 85,758 | 98% |
+| mining | 11,956 | 180 | 163 | 188,716 | 84% |
+| kiln | 5,617 | 9 | 2 | 8,944 | 50% |
+| industrial_other | 33,366 | 314 | 169 | 100,741 | 88% |
+| unlabelled | - | - | 70 | 23,720 | 74% |
 
-WRI GPPD thermal plants (coal/gas/oil) within 1000 m: 46 sources.
+WRI GPPD thermal plants (coal/gas/oil) within 1000 m: 47 sources.
