@@ -138,11 +138,14 @@ def test_required_file_exists(rel):
     assert (REPO / rel).exists(), f"missing {rel}"
 
 
-def test_make_ps1_is_ascii():
-    """PowerShell 5.1 reads a BOM-less script as ANSI; non-ASCII can break parsing."""
-    data = (REPO / "make.ps1").read_bytes()
-    bad = [i for i, b in enumerate(data) if b > 127]
-    assert not bad, f"non-ASCII byte in make.ps1 at offset {bad[0]}"
+@pytest.mark.parametrize("rel", ["make.ps1", "scripts/local_postgres.ps1"])
+def test_powershell_scripts_are_plain_ascii(rel):
+    """PowerShell 5.1 reads a BOM-less script as ANSI; non-ASCII can break parsing.
+    Control characters are refused too: a stray backspace from an escaped '\\b'
+    once turned 'scripts\\backfill.py' into a path that does not exist."""
+    data = (REPO / rel).read_bytes()
+    bad = [i for i, b in enumerate(data) if b > 127 or (b < 32 and b not in (9, 10, 13))]
+    assert not bad, f"non-printable byte {data[bad[0]]:#x} in {rel} at offset {bad[0]}"
 
 
 def test_task_runners_have_the_same_targets():

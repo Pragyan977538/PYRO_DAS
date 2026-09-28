@@ -40,6 +40,10 @@ def engine() -> Engine:
             max_overflow=10,
             pool_pre_ping=True,  # survive the DB container restarting under us
             future=True,
+            # Every date here is a UTC date. The database default is set too
+            # (003_ingest.sql), but that only reaches new sessions; pinning it per
+            # connection holds on any server, whatever zone it inherited.
+            connect_args={"options": "-c timezone=UTC"},
         )
         log.debug("engine created for %s", cfg.database_url.split("@")[-1])
     return _engine

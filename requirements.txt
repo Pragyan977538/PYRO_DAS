@@ -7,6 +7,8 @@ scipy==1.14.1
 geopandas==1.0.1
 shapely==2.0.6
 pyproj==3.7.0
+rasterio==1.5.1      # WorldCover sampling from cloud-optimised GeoTIFFs
+osmium==4.3.1        # Geofabrik extract filtering (pyosmium), no native tools needed
 
 # --- ml ---
 scikit-learn==1.5.2

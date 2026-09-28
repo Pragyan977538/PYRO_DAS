@@ -65,18 +65,30 @@ def cell_375(lat, lon) -> np.ndarray:
             + np.floor(y / CELL_M).astype(np.int64))
 
 
-def era5_cell(lat, lon) -> np.ndarray:
-    """ERA5 0.25-degree cell id: row counted from the north pole, column from the
-    antimeridian."""
+def grid_cell(lat, lon, deg: float) -> np.ndarray:
+    """Id of a regular lat/lon grid cell: row counted from the north pole, column
+    from the antimeridian. Which grid an id belongs to travels with it (the
+    observability table's ``source``), never inferred from the number."""
     lat = np.asarray(lat, dtype=float)
     lon = np.asarray(lon, dtype=float)
-    row = np.floor((90.0 - lat) / ERA5_DEG).astype(np.int64)
-    col = np.floor((lon + 180.0) / ERA5_DEG).astype(np.int64)
-    return row * _ERA5_COLS + col
+    cols = int(round(360 / deg))
+    row = np.floor((90.0 - lat) / deg).astype(np.int64)
+    col = np.floor((lon + 180.0) / deg).astype(np.int64)
+    return row * cols + col
+
+
+def grid_cell_centre(cell, deg: float) -> tuple[np.ndarray, np.ndarray]:
+    """Latitude and longitude of a grid cell's centre."""
+    cell = np.asarray(cell, dtype=np.int64)
+    row, col = np.divmod(cell, int(round(360 / deg)))
+    return 90.0 - (row + 0.5) * deg, (col + 0.5) * deg - 180.0
+
+
+def era5_cell(lat, lon) -> np.ndarray:
+    """ERA5 0.25-degree cell id."""
+    return grid_cell(lat, lon, ERA5_DEG)
 
 
 def era5_cell_centre(cell) -> tuple[np.ndarray, np.ndarray]:
     """Latitude and longitude of an ERA5 cell's centre."""
-    cell = np.asarray(cell, dtype=np.int64)
-    row, col = np.divmod(cell, _ERA5_COLS)
-    return 90.0 - (row + 0.5) * ERA5_DEG, (col + 0.5) * ERA5_DEG - 180.0
+    return grid_cell_centre(cell, ERA5_DEG)

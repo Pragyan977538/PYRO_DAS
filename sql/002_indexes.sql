@@ -55,5 +55,5 @@ CREATE INDEX IF NOT EXISTS events_risk           ON events (risk_score DESC NULL
 CREATE INDEX IF NOT EXISTS events_last_seen      ON events (last_seen DESC);
 
 CREATE INDEX IF NOT EXISTS assets_type          ON critical_assets (asset_type);
-CREATE INDEX IF NOT EXISTS osm_industrial_tag   ON osm_industrial (tag);
+-- osm_industrial is reshaped in 003_ingest.sql, which indexes label_group.
 CREATE INDEX IF NOT EXISTS fsi_alerts_date      ON fsi_alerts (alert_date);
