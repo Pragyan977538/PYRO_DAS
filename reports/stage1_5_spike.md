@@ -3,6 +3,14 @@
 **Date:** 2026-09-29 · **Data:** all VIIRS detections over India in 2023 (S-NPP + NOAA-20)
 · **Script:** `scripts/spike_cluster.py` · **Rerun:** `.\make.ps1 spike` or `make spike`
 
+> **Superseded in part by `reports/stage1_5b_multiyear.md`.** This one-year test
+> concluded that raw DBSCAN does *not* merge the Punjab paddy belt into one blob.
+> Three years (2021–2023) show that it does: a single cluster of 365,996 detections
+> spans the whole belt, 400 km corner to corner, 99% of it in stubble months. One year
+> was too little history, and the ten-year stand-in below understated the effect, as
+> its caveat warned. Everything else here stands. The proposed gate (≥ 4 months,
+> ≥ 10 days, in ≥ 2 years) was confirmed on three years without change.
+
 Before Stage 3 is built on them, this spike tests two claims from the design review:
 
 1. Raw DBSCAN over years of detections chains farm and forest landscapes into "sources",

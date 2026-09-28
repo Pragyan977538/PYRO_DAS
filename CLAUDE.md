@@ -85,6 +85,18 @@ nothing. Concretely:
 Counts are OSM objects in India (Geofabrik taginfo, 2026-09-29). Where a class has no
 honest label source, say so — never invent labels to fill it.
 
+**Proposed revision, pending the user's review** (`reports/stage1_5b_multiyear.md`).
+The label census counted how many *registry sources* each group actually labels:
+mining 153, heavy industry 214 (thermal power 39 + steel/cement 6 + other works 169),
+oil and gas 28, kiln 2. That supports three Model 1 classes:
+- mining and coal fires
+- heavy industry — power, steel and smelters are merged, because captive power plants
+  make them inseparable by label
+- oil and gas — thin, so its recall is reported separately
+
+Kiln is dropped; both of its labels were wrong. Recurrent biomass becomes a fourth class
+only if WorldCover finds at least ~30 registry sources on cropland or forest.
+
 | Class | Label sources | Caveat |
 |---|---|---|
 | flare | `industrial=refinery` (35), `industrial=oil` (40), `man_made=petroleum_well` (37), `man_made=flare` (22) | OSM has only 22 flare tags in all of India. Oil-and-gas facility polygons are the fallback, and they also hold process heaters, so flare labels are noisy. The EOG flare list needs the VNF licence |
@@ -132,16 +144,16 @@ all normal readings sit above the median by definition.
 
 ### The registry holds persistent sources, not landscapes
 
-Raw DBSCAN over detections turns one-off crop and forest fires into "sources". Measured
-on one real year (2023, `reports/stage1_5_spike.md`):
-- It registered **33,963 sources across India**; the gated method finds 442.
-- **57% of the Punjab paddy belt's detections** landed inside a source (72% in a
-  ten-year stand-in). Those stubble fires would get baselines and skip Road A.
-- The belt did *not* merge into one blob; it fragments into thousands of 2–10 km field
-  clusters.
-- Dense landscapes do chain: the Jharia coalfield became one 16 km blob.
+Raw DBSCAN over detections turns crop and forest landscapes into "sources". On three
+real years (2021–2023, `reports/stage1_5b_multiyear.md`):
+- It merged **the whole Punjab paddy belt into one cluster**: 365,996 detections,
+  400 km corner to corner, 99% in stubble months, none carrying FIRMS' static flag.
+- **97%** of the belt's detections, and **74.5%** of all detections in India, would
+  skip Road A.
+- On one year the belt merely fragmented into 2–10 km field clusters (57% inside a
+  "source"). The chaining grows with history.
 
-Instead:
+The gated method keeps 461 sources and misroutes 0.30% of the belt. Instead:
 
 1. **Project to metres.** One degree of longitude is 111 km at the equator and 85 km at
    Kashmir's latitude, so `eps` in degrees means different distances across India.
@@ -154,13 +166,16 @@ Instead:
 2. **Snap to ~375 m cells** (the VIIRS pixel) and aggregate: detections, distinct days,
    nights, months and years.
 3. **Gate on recurrence:** keep cells that burn across multiple years *and* across much of
-   the year. Starting values from Stage 1.5: within a year, **≥ 4 distinct months on
-   ≥ 10 distinct days, in at least 2 years**.
-   - On one year this kept the paddy belt at 1.8% while covering 99.8% of FIRMS-static
-     detections and 71% of active GIHS sites.
-   - The two-year rule keeps a single long accident (Baghjan) out by construction.
-   - Thresholds live in config; Stage 3 calibrates them against GIHS on the full
-     archive.
+   the year. Within a year, **≥ 4 distinct months on ≥ 10 distinct days, in at least 2
+   years**. Proposed from one year, then confirmed unchanged on 2021–2023. That setting
+   gives:
+   - 461 sources, with 0.30% of the paddy belt misrouted
+   - 75% of active GIHS sites recovered, and 87% of sources on a GIHS site
+   - Reliance, Nayara and HMEL all found
+
+   Requiring all 3 of 3 years is too strict, because flares are intermittent. The
+   two-year rule keeps a single long accident (Baghjan) out by construction. Thresholds
+   live in config; Stage 3 recalibrates on the full archive.
 4. **Cluster the surviving cells** with
    `DBSCAN(eps=500, min_samples=5, algorithm="ball_tree", ...)` fitted with
    `sample_weight=n_detections`.
@@ -171,8 +186,8 @@ Instead:
 grows with the square of cluster size *whatever the tree algorithm*. Measured:
 - `ball_tree` and `kd_tree` gave identical labels and identical memory (1,258 MB on
   one year), and `"auto"` already picks `kd_tree`.
-- Doubling the points tripled peak memory. The full 2012–2024 archive would need
-  roughly 45–70 GB raw.
+- Three years took 7.8 GB and 310 s, against 1.26 GB and 11 s for one. The full
+  2012–2024 archive would need about 48 GB raw.
 - The gated method took 271 MB.
 
 `ball_tree` is kept for consistency; gridding plus `sample_weight` is what bounds
@@ -304,8 +319,10 @@ government agency.
 
 - `docs/ROADMAP.md` — the build stages with acceptance criteria. **Read the relevant
   stage before starting work.**
-- `reports/stage1_5_spike.md` — the real-data clustering test that settled the registry
-  design.
+- `reports/stage1_5b_multiyear.md` — the gate on three real years, the demo refineries,
+  and the label census behind the proposed classes.
+- `reports/stage1_5_spike.md` — the one-year clustering test: memory and the first
+  gate proposal.
 - `docs/plan.md` — feasibility results from the synthetic benchmark. Partly superseded:
   see Changed decisions.
 - `docs/PS26162_Blueprint.md` — full technical reference: data sources, field lists, the
@@ -315,7 +332,20 @@ government agency.
 
 ## Measured numbers
 
-**Real data** — one year of VIIRS over India (2023, 1,170,878 detections), from
+**Real data, three years** — VIIRS over India, 2021–2023, 3,906,061 detections, from
+`reports/stage1_5b_multiyear.md`:
+
+- Raw DBSCAN put **365,996 detections in one cluster spanning the paddy belt**, and
+  97% of the belt's detections inside a "source".
+- Gated (≥ 4 months, ≥ 10 days, ≥ 2 years): **461** sources.
+  - Paddy belt **0.30%** misrouted.
+  - GIHS recall **75%**, with **87%** of sources on a GIHS site.
+  - FIRMS-static coverage **98.9%**.
+  - Reliance, Nayara and HMEL all found.
+- Registry sources labelled by OSM: mining 153, heavy industry 214, oil and gas 28,
+  kiln 2.
+
+**Real data, one year** — VIIRS over India, 2023, 1,170,878 detections, from
 `reports/stage1_5_spike.md`:
 
 - **29.0%** of detections are at night; **12.7%** carry FIRMS' `type=2` static flag.
@@ -347,7 +377,7 @@ is kept here so the history isn't lost.
 
 | # | Old rule | New rule | Why |
 |---|---|---|---|
-| 1 | DBSCAN on raw detections; `ball_tree` fixes memory; cluster state by state | 375 m cells, recurrence gate, DBSCAN with `sample_weight`, footprint cap; no state partitioning | Stage 1.5, real 2023 data: raw DBSCAN made 33,963 "sources" (vs 442) and put 57% of Punjab's stubble fires inside one. The synthetic benchmark hid this by modelling biomass fires as point sources. `ball_tree` and `kd_tree` used identical memory; the 330k-vs-158k comparison changed the data, not just the algorithm |
+| 1 | DBSCAN on raw detections; `ball_tree` fixes memory; cluster state by state | 375 m cells, recurrence gate, DBSCAN with `sample_weight`, footprint cap; no state partitioning | Stages 1.5/1.5b, real data: on 2021–2023, raw DBSCAN merged the whole Punjab paddy belt into one 400 km cluster (97% of its detections). The synthetic benchmark hid this by modelling biomass fires as point sources. `ball_tree` and `kd_tree` used identical memory; the 330k-vs-158k comparison changed the data, not just the algorithm |
 | 2 | Single-tier, two-consecutive-pass confirmation | Provisional alert on one extreme pass; confirmed alert on two consecutive breaching passes | Short blasts, the deadliest events, often burn out between passes |
 | 3 | Road A sites repeating ~20 nights are promoted into the registry | Promoted sources stay provisional and keep alerting until they look like stable infrastructure; Baghjan 2020 is the regression test | A long-burning accident would become "normal" within a month; a competing team's repo documents exactly this failure at Baghjan |
 | 4 | Baselines keyed `sensor \| daynight \| season` (per satellite) | Keyed `instrument \| daynight \| season` | S-NPP delivery ends 1 Nov 2026; NOAA-21 has little history; VIIRS units share one algorithm |

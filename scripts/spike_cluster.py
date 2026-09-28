@@ -156,14 +156,19 @@ def cell_table(df: pd.DataFrame) -> tuple[pd.DataFrame, np.ndarray]:
 
 def grid_cluster(cells: pd.DataFrame, months: int = GATE_MONTHS,
                  days: int = GATE_DAYS) -> pd.DataFrame:
-    """Gate cells on recurrence, then DBSCAN the survivors with sample_weight.
+    """Gate cells on one year's recurrence, then cluster the survivors."""
+    gated = cells[(cells["n_months"] >= months) & (cells["n_days"] >= days)].copy()
+    return cluster_cells(gated)
+
+
+def cluster_cells(gated: pd.DataFrame) -> pd.DataFrame:
+    """DBSCAN the gated cells with sample_weight, then apply the footprint cap.
 
     Returns the gated cells with a ``source`` label (-1 = not registered) and the
     width of the cluster each belongs to.
     """
     from sklearn.cluster import DBSCAN
 
-    gated = cells[(cells["n_months"] >= months) & (cells["n_days"] >= days)].copy()
     if gated.empty:
         gated["source"] = pd.Series(dtype=int)
         gated["width_km"] = pd.Series(dtype=float)
@@ -751,7 +756,7 @@ def main() -> int:
         figure_memory(mem, OUT / "fig3_memory.png")
     figure_india(df, gated, OUT / "fig4_india.png")
 
-    (OUT / "results.json").write_text(json.dumps(results, indent=2, default=str))
+    (OUT / "results.json").write_text(json.dumps(results, indent=2, default=str), encoding="utf-8")
     write_tables(results, OUT / "tables.md")
     print(f">> wrote {OUT.relative_to(REPO)}")
     return 0
@@ -788,7 +793,7 @@ def write_tables(r: dict, path: Path) -> None:
         lines += ["", f"Run {run}: {a['mostly_one_off_fires']} of {a['sources_checked']} "
                   f"persistent sources sit in a raw cluster made mostly of one-off fires "
                   f"(median contamination {a['median_contamination']:.0%})."]
-    path.write_text("\n".join(lines) + "\n")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

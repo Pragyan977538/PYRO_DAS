@@ -34,8 +34,10 @@ differentiation and goes first. Stage 10's headline metric is not optional.
 | Stage | State |
 |---|---|
 | 0 | Fixes done 2026-09-29. DB acceptance **pending Docker Desktop** |
-| 1.5 | Done 2026-09-29 — `reports/stage1_5_spike.md`. **Awaiting review before Stage 3** |
-| 1, 2, 3–10 | Not started |
+| 1.5 | Done 2026-09-29 — `reports/stage1_5_spike.md` (one year) |
+| 1.5b | Done 2026-09-29 — `reports/stage1_5b_multiyear.md` (three years, refineries, label census). **Awaiting review before Stage 3** |
+| 1, 2 | Not started. May proceed once Docker is up; they don't depend on the gate |
+| 3–10 | Not started |
 
 ---
 
@@ -154,16 +156,38 @@ Stage 3.
 **Stage 3 does not start until the user has reviewed this.**
 
 **Result (2026-09-29):** both problems are real.
-- **Problem 1**, in a different form than predicted: the paddy belt fragments into
-  thousands of field clusters rather than one blob, but 57% of its detections still
-  land inside "sources" (1.8% gated). 33,963 raw sources vs 442 gated.
-- **Problem 2**, exactly as stated: `ball_tree` = `kd_tree` = 1,258 MB, and memory
-  grows faster than the data.
-- The gated method matches 99% of FIRMS-static detections and puts 83% of its sources
-  on GIHS sites.
+- **Problem 1.** On one year the paddy belt fragments into thousands of field
+  clusters, with 57% of its detections inside "sources". On three years (Stage 1.5b)
+  it merges into **one 400 km cluster** holding 97% of them.
+- **Problem 2.** `ball_tree` = `kd_tree` = 1,258 MB, and memory grows faster than the
+  data.
+- The gated method matches 99% of FIRMS-static detections.
 - Proposed gate: ≥ 4 months on ≥ 10 days within a year, in ≥ 2 years.
 
 Full numbers are in `reports/stage1_5_spike.md`.
+
+---
+
+## Stage 1.5b — the gate on three years, the demo refineries, the label census
+
+**Build:** rerun the gate sweep on 2021–2023 (months × days × years = 36 settings);
+check Reliance Jamnagar, Nayara Vadinar and HMEL Bathinda at their published
+coordinates; rerun raw DBSCAN on all three years; and count how many *registry
+sources* each OSM label group can label.
+
+**Produces:** `scripts/spike_gate_multiyear.py`, `scripts/spike_labels.py`,
+`reports/stage1_5b_multiyear.md`, `reports/stage1_5b/*`
+
+**Result (2026-09-29):**
+- **The gate is confirmed unchanged:** ≥ 4 months, ≥ 10 days, in ≥ 2 years.
+  - 461 sources, with 0.30% of the paddy belt misrouted.
+  - GIHS recall 75%, with 87% of sources on a GIHS site.
+  - All three refineries found, with 81%, 84% and 92% of their detections covered.
+- **Raw DBSCAN** merges the belt into one 400 km cluster.
+- **Label census:** mining 153, heavy industry 214, oil and gas 28, kiln 2. That
+  supports the proposed three-class Model 1 (Stage 4).
+
+**Stage 3 does not start until the user has reviewed this.**
 
 ---
 
@@ -205,9 +229,9 @@ If VNF is loaded, record its real coverage. It will be far below the old mock's 
 
 **Build:**
 - 375 m cells.
-- The recurrence gate, starting from Stage 1.5's values — within a year, ≥ 4 distinct
-  months on ≥ 10 distinct days, in at least 2 years — and calibrated here against GIHS
-  on the full archive.
+- The recurrence gate: within a year, ≥ 4 distinct months on ≥ 10 distinct days, in
+  at least 2 years. It was confirmed on 2021–2023 (Stage 1.5b) and is recalibrated
+  here against GIHS on the full archive.
 - DBSCAN on gated cells (`eps=500` m, `min_samples=5` by weight, `sample_weight`).
 - A 20 km footprint cap, as a backstop only: the widest gated source in 2023 was
   6.8 km.
@@ -226,24 +250,39 @@ make registry
 psql -c "SELECT count(*) FROM sources;"
 python scripts/check_registry.py
 ```
-`check_registry.py` asserts. The starting targets come from one year in Stage 1.5;
-raise them if the full archive allows:
-- **GIHS recall ≥ 70%** of confirmed India objects active in 2021, within 1 km
-- **Punjab paddy belt ≤ 2%** of detections within 500 m of a source
-- **FIRMS `type=2` recall ≥ 99%** of static-flagged detections within 500 m of a source
+`check_registry.py` asserts. The floors come from three years in Stage 1.5b; raise them
+if the full archive allows:
+- **GIHS recall ≥ 75%** of confirmed India objects active in 2021, within 1 km
+- **≥ 85% of sources on a GIHS site** (a lower bound on precision)
+- **Punjab paddy belt ≤ 1%** of detections within 500 m of a source, outside a 3 km
+  zone around the HMEL refinery
+- **FIRMS `type=2` recall ≥ 98%** of static-flagged detections within 500 m of a source
   (evaluation only)
+- **Reliance Jamnagar, Nayara Vadinar and HMEL Bathinda** each have a source within 3 km
+  of their published coordinates
 - no source footprint wider than the cap
 - persistence in (0, 1], computed nights over nights
 - every source has a non-empty `baselines` JSONB
 
-It also reports the share of sources on a GIHS site (83% in Stage 1.5; a lower bound on
-precision) and how many co-located sources merge.
+It also reports how many co-located sources merge.
 
-**Blocked by:** Stage 2, **and the user's review of Stage 1.5**. **Effort:** two days.
+**Blocked by:** Stage 2, **and the user's review of Stage 1.5b**. **Effort:** two days.
 
 ---
 
 ## Stage 4 — Weak labels and Model 1
+
+**Classes (proposed in Stage 1.5b, pending the user's review):** the label census counted
+the registry sources each group can label.
+- **Mining and coal fires:** 153.
+- **Heavy industry:** 214 — thermal power, steel, cement, smelters and other works,
+  merged because captive power plants make them inseparable by label.
+- **Oil and gas:** 28 — thin, so its recall is reported separately. If that recall is
+  unusable, the map names the nearest OSM oil and gas facility instead; that is a
+  display lookup, not a class.
+- **Kiln:** dropped.
+- **Recurrent biomass:** a fourth class only if WorldCover finds at least ~30 registry
+  sources on cropland or forest with no industrial label.
 
 **Build:** label joins per the class table in `CLAUDE.md`, with `LABEL_INPUTS` declared
 per label. XGBoost with GroupKFold by spatial block (~2°, so no state polygons are
@@ -417,9 +456,9 @@ runs the three-minute demo path end to end without intervention.
 ```
 0 ─→ 1 ─→ 2 ─→ 3 ─→ 4 ─→ 5 ─→ 6 ─→ 7
 │              ↑    │         │     │
-└─→ 1.5 ──────┘    └─→ 8 ←───┴─────┘
-   (review)             │
-                        └─→ 9 ─→ 10
+└─→ 1.5 ─→ 1.5b    └─→ 8 ←───┴─────┘
+         (review)          │
+                           └─→ 9 ─→ 10
 ```
 
 Stage 1.5 feeds Stage 3 (gate thresholds and the go-ahead). Stage 8 can start as soon as
