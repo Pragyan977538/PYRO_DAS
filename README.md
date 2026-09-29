@@ -44,6 +44,7 @@ Then the data (the same targets work with `make`):
 .\make.ps1 inference  # route the latest year through Roads A, B and C
 .\make.ps1 events     # assemble the routed detections into incidents
 .\make.ps1 risk       # score every incident: hazard x exposure x vulnerability
+.\make.ps1 api        # API and map on http://localhost:8000 (API docs at /docs)
 ```
 
 **No Docker?** `.\scripts\local_postgres.ps1 install` sets up a portable PostgreSQL 16
@@ -74,7 +75,7 @@ the synthetic test fixture.
 
 ## Status
 
-Stages 0 to 7 done. The real 2012–2024 archive is loaded (12.55M detections); the
+Stages 0 to 8 done. The real 2012–2024 archive is loaded (12.55M detections); the
 registry has 557 persistent sources and passes every acceptance floor; Model 1
 classifies them as oil and gas, heavy industry or mining from their thermal
 fingerprint alone (61% balanced accuracy under spatial cross-validation). Stage 5
@@ -82,4 +83,5 @@ routes every detection through Roads A, B and C with a written reason. 2024
 replayed: 1.2M detections segregated into industrial, agricultural, forest and
 other; Baghjan 2020 never treated as normal. Stage 6 assembles them into 461k
 incidents with a lifecycle, and one real fire is one event. Stage 7 scores each for
-risk with its decomposition. Stage 8 (API) is next.
+risk with its decomposition; Stage 8 serves it all over HTTP, with vector tiles for
+the map. Stage 9 (the map) is next.

@@ -21,6 +21,7 @@ psycopg2-binary==2.9.10
 # --- api (stage 8) ---
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
+httpx==0.28.1        # FastAPI's TestClient, for the API tests
 
 # --- plumbing ---
 requests==2.32.3

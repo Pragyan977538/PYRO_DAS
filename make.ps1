@@ -119,6 +119,7 @@ function Show-Help {
     Write-Host '  inference stage 5: route the latest year through Roads A, B and C'
     Write-Host '  events    stage 6: assemble the latest run into incidents'
     Write-Host '  risk      stage 7: score every event (hazard x exposure x vulnerability)'
+    Write-Host '  api       stage 8-9: serve the API and the map on http://localhost:8000'
     Write-Host '  spike     stage 1.5: cluster one real year of FIRMS (no database)'
     Write-Host '  down      stop containers (data kept)'
     Write-Host '  clean     stop containers AND delete the volume'
@@ -239,6 +240,11 @@ try {
             Assert-Venv
             Write-Step 'stage 1.5: one real year of FIRMS, clustered three ways'
             Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\spike_cluster.py')
+        }
+        'api' {
+            Assert-Venv
+            Write-Step 'stage 8: API and map on http://localhost:8000 (docs at /docs)'
+            Invoke-Native -FilePath $VenvPython -ArgumentList @('-m', 'uvicorn', 'firewatch.api.main:app', '--host', '0.0.0.0', '--port', '8000')
         }
         'logs' {
             Assert-Docker

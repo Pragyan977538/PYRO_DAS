@@ -12,7 +12,7 @@ PY := .venv/bin/python
 BOOTSTRAP ?= python3.13
 endif
 
-.PHONY: help install db migrate psql test lint fixture backfill registry labels train inference events risk spike down clean logs
+.PHONY: help install db migrate psql test lint fixture backfill registry labels train inference events risk api spike down clean logs
 
 help:
 	@echo "FireWatch - build tasks (Windows: .\\make.ps1 <target>)"
@@ -30,6 +30,7 @@ help:
 	@echo "  make inference stage 5: route the latest year through Roads A, B and C"
 	@echo "  make events    stage 6: assemble the latest run into incidents"
 	@echo "  make risk      stage 7: score every event (hazard x exposure x vulnerability)"
+	@echo "  make api       stage 8-9: serve the API and the map on http://localhost:8000"
 	@echo "  make spike     stage 1.5: cluster one real year of FIRMS (no database)"
 	@echo "  make down      stop containers (data kept)"
 	@echo "  make clean     stop containers AND delete the volume"
@@ -99,6 +100,10 @@ risk:
 	@echo ">> stage 7: risk scoring, then its checks"
 	$(PY) scripts/score_risk.py
 	$(PY) scripts/check_risk.py
+
+api:
+	@echo ">> stage 8: API and map on http://localhost:8000 (docs at /docs)"
+	$(PY) -m uvicorn firewatch.api.main:app --host 0.0.0.0 --port 8000
 
 spike:
 	@echo ">> stage 1.5: one real year of FIRMS, clustered three ways"

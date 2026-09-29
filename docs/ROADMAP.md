@@ -43,7 +43,8 @@ differentiation and goes first. Stage 10's headline metric is not optional.
 | 5 | **Done 2026-09-29, one target missed.** 2024 replayed: 1.20M detections routed and explained. Road C confirmed recall 88.2% (target > 90%) at 0.040% false positives; Baghjan never Road B (`reports/stage5_inference.md`) |
 | 6 | **Done 2026-09-29.** 2024 assembled into 461,007 events (115 new-source incidents, 28 anomalies); Baghjan is exactly one event (`reports/stage6_events.md`) |
 | 7 | **Done 2026-09-29.** 461,008 events scored with decompositions; remote big fires score ≤ 17.8, big fires at critical assets median 79.2 (`reports/stage7_risk.md`) |
-| 8–10 | Not started |
+| 8 | **Done 2026-09-29.** FastAPI: sources, detections, events (with risk breakdown), timeseries, observability, vector tiles; acceptance calls pass on the live server |
+| 9–10 | Not started |
 
 ---
 
@@ -660,7 +661,7 @@ same decomposition is checked in the database by `scripts/check_risk.py`. Full w
 observability; `ST_AsMVT` vector tiles for anything above ~10k points. Responses carry
 the provisional flag, the alert tier and the reason text.
 
-**Produces:** `firewatch/api/`
+**Produces:** `firewatch/api/` (`main`, `tiles`), `sql/009_api.sql`, `tests/test_api.py`
 
 **Accept when:**
 ```bash
@@ -672,6 +673,19 @@ curl "localhost:8000/api/tiles/detections/6/40/28.mvt" -o /dev/null -w "%{http_c
 
 **Blocked by:** Stage 3 minimum (sources endpoint), Stage 6 for events.
 **Effort:** one day.
+
+**Result (2026-09-29):** accepted on the live server (`make api`).
+- **Acceptance calls:** `class=flare` returns 34 sources (legacy class names map to the
+  approved classes). The `6/40/28.mvt` tile returns 200. `/docs` renders. Stage 7's
+  `curl /api/events/{id} | jq .risk_breakdown` returns the full decomposition.
+- **Endpoints:** sources (and detail, and time series), detections (and the detail
+  panel), events (and detail with risk breakdown and timeline), observability, and
+  vector tiles for detections and events. Every feature carries its alert tier, the
+  provisional flag and the reason.
+- **Tiles.** Detections are binned below zoom 8 and read time-first. A zoom-5 tile
+  fell from 5.8 s to 0.38 s; most calls take tens of milliseconds.
+- **The map** (`web/`) is served from `/` by the same process.
+- **Tests:** 13 in `tests/test_api.py`, on a fixture database.
 
 ---
 
