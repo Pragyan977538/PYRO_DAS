@@ -121,6 +121,8 @@ function Show-Help {
     Write-Host '  risk      stage 7: score every event (hazard x exposure x vulnerability)'
     Write-Host '  basemap   stage 9: build the offline basemap (Natural Earth, India POV)'
     Write-Host '  api       stage 8-9: serve the API and the map on http://localhost:8000'
+    Write-Host '  validate  stage 10: replay every verified industrial fire (per-fire recall)'
+    Write-Host '  demo      stage 10: the three-minute demo path (starts the API if needed)'
     Write-Host '  spike     stage 1.5: cluster one real year of FIRMS (no database)'
     Write-Host '  down      stop containers (data kept)'
     Write-Host '  clean     stop containers AND delete the volume'
@@ -251,6 +253,18 @@ try {
             Assert-Venv
             Write-Step 'stage 8: API and map on http://localhost:8000 (docs at /docs)'
             Invoke-Native -FilePath $VenvPython -ArgumentList @('-m', 'uvicorn', 'firewatch.api.main:app', '--host', '0.0.0.0', '--port', '8000')
+        }
+        'validate' {
+            Assert-Venv
+            Write-Step 'stage 10: per-fire recall on reference\verified_events.csv'
+            Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\validate_events.py')
+            Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\check_baghjan.py')
+        }
+        'demo' {
+            Assert-Venv
+            Write-Step 'stage 10: the demo path (scripts\demo.ps1 -Check verifies it)'
+            & (Join-Path $PSScriptRoot 'scripts\demo.ps1')
+            if ($LASTEXITCODE -ne 0) { throw 'demo failed' }
         }
         'logs' {
             Assert-Docker

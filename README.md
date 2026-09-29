@@ -46,6 +46,8 @@ Then the data (the same targets work with `make`):
 .\make.ps1 risk       # score every incident: hazard x exposure x vulnerability
 .\make.ps1 basemap    # the offline basemap (Natural Earth, India point of view)
 .\make.ps1 api        # the map on http://localhost:8000 (API docs at /docs)
+.\make.ps1 validate   # replay every verified industrial accident: per-fire recall
+.\make.ps1 demo       # the three-minute demo path (.\scripts\demo.ps1 -Check verifies it)
 ```
 
 **No Docker?** `.\scripts\local_postgres.ps1 install` sets up a portable PostgreSQL 16
@@ -64,6 +66,7 @@ the synthetic test fixture.
 |---|---|
 | `CLAUDE.md` | Design decisions that must not be undone, and the log of those that changed. Read before changing anything. |
 | `docs/ROADMAP.md` | The build stages, each with an acceptance command. |
+| `reports/validation.md` | **Start here.** Every headline number, the per-fire recall on verified accidents, and the limitations. |
 | `reports/stage7_risk.md` | Risk scores with their decomposition; why multiplication. |
 | `reports/stage6_events.md` | From 1M detections to 461k incidents; one real fire, one event. |
 | `reports/stage5_inference.md` | Routing a year of fires, Road C on injected spikes, the Baghjan test. |
@@ -76,7 +79,7 @@ the synthetic test fixture.
 
 ## Status
 
-Stages 0 to 9 done. The real 2012–2024 archive is loaded (12.55M detections); the
+All stages, 0 to 10, done. The real 2012–2024 archive is loaded (12.55M detections); the
 registry has 557 persistent sources and passes every acceptance floor; Model 1
 classifies them as oil and gas, heavy industry or mining from their thermal
 fingerprint alone (61% balanced accuracy under spatial cross-validation). Stage 5
@@ -85,5 +88,12 @@ replayed: 1.2M detections segregated into industrial, agricultural, forest and
 other; Baghjan 2020 never treated as normal. Stage 6 assembles them into 461k
 incidents with a lifecycle, and one real fire is one event. Stage 7 scores each for
 risk with its decomposition; Stage 8 serves it all over HTTP, with vector tiles for
-the map; Stage 9 is the map itself, offline, with a reason on every click. Stage 10
-(validation and demo) is next.
+the map; Stage 9 is the map itself, offline, with a reason on every click.
+
+Stage 10 replays 18 verified industrial accidents (2013–2024, Baghjan included). **The
+headline is a miss: 1 of 18 flagged.** FIRMS itself saw only 6 of them: most burned for a
+few hours between polar-orbiter passes, or under monsoon cloud. Of the six it saw, three
+were inside running plants and looked like those plants' normal. Persistent industrial
+heat is where the system is strong; sudden accidents need geostationary data.
+`reports/validation.md` has the numbers, the reasons for each miss, and the
+limitations.

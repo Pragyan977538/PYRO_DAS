@@ -1,0 +1,898 @@
+{
+  "summary": {
+    "events_located": 18,
+    "events_not_located": [
+      "DAHEJ-YASHASHVI-2020",
+      "ESCIENTIA-ATCHUTAPURAM-2024"
+    ],
+    "recall_flagged": 0.056,
+    "flagged": 1,
+    "flagged_as_industrial": 1,
+    "expected_by_chance": 0.12,
+    "signature": 6,
+    "outcomes": {
+      "no signature": 12,
+      "routine": 3,
+      "misclassified": 2,
+      "flagged": 1
+    },
+    "time_to_flag_h": {
+      "n": 0,
+      "mean": null,
+      "median": null
+    },
+    "time_to_first_detection_h": {
+      "n": 5,
+      "mean": 6.0,
+      "median": 2.8
+    }
+  },
+  "events": [
+    {
+      "event_id": "BAGHJAN-2020",
+      "name": "Baghjan well No. 5 blowout (Tinsukia; Assam)",
+      "kind": "well_blowout",
+      "point": [
+        27.604,
+        95.405
+      ],
+      "location_basis": "wikipedia: oilfield point (not the well)",
+      "match_m": 3000,
+      "window_utc": [
+        "2020-06-08 18:30:00+00:00",
+        "2020-11-15 18:30:00+00:00"
+      ],
+      "time_known": false,
+      "outcome": "flagged",
+      "detections": 630,
+      "by_road": {
+        "3": 533,
+        "1": 69,
+        "2": 28
+      },
+      "by_category": {
+        "forest": 570,
+        "industrial": 29,
+        "other_natural": 17,
+        "agricultural": 9,
+        "unclassified": 5
+      },
+      "alerts": {
+        "new_source": 532,
+        "confirmed": 1
+      },
+      "watch": 2,
+      "first_detection_h": null,
+      "first_flag_h": null,
+      "first_detection_utc": "2020-06-09 16:34:00+00:00",
+      "first_flag_utc": "2020-06-30 06:14:00+00:00",
+      "flag_categories": {
+        "forest": 532,
+        "industrial": 1
+      },
+      "nearest_in_window_m": 131,
+      "max_frp": 104.0,
+      "instruments": [
+        "MODIS",
+        "VIIRS"
+      ],
+      "reason": "provisional source since 2020-06-29: this site had no fire history before, and it alerts on every pass until an analyst confirms it",
+      "promoted_after": [
+        {
+          "source_id": 10000000,
+          "promoted_at": "2020-06-30 00:00:00+00:00",
+          "cls": "forest"
+        }
+      ],
+      "lead_flag_days": 0,
+      "lead_detections": 9,
+      "chance": 0.0,
+      "nearest_source": {
+        "source_id": 549,
+        "cls": "heavy_industry",
+        "osm_name": null,
+        "distance_m": 313
+      },
+      "replay": {
+        "detections": 1071,
+        "promotions": 1
+      }
+    },
+    {
+      "event_id": "HAZIRA-ONGC-2020",
+      "name": "ONGC Hazira gas processing plant fire (Surat; Gujarat)",
+      "kind": "gas_plant_fire",
+      "point": [
+        21.15787,
+        72.730929
+      ],
+      "location_basis": "wikipedia: plant point",
+      "match_m": 2000,
+      "window_utc": [
+        "2020-09-23 21:35:00+00:00",
+        "2020-09-24 21:35:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "no signature",
+      "detections": 0,
+      "by_road": {},
+      "by_category": {},
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": null,
+      "first_flag_h": null,
+      "first_detection_utc": null,
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": 10107,
+      "max_frp": null,
+      "instruments": [],
+      "reason": null,
+      "promoted_after": [],
+      "lead_flag_days": 0,
+      "lead_detections": 17,
+      "chance": 0.0,
+      "nearest_source": {
+        "source_id": 53,
+        "cls": "heavy_industry",
+        "osm_name": "OIl & Natural Gas Corporation",
+        "distance_m": 812
+      },
+      "replay": {
+        "detections": 271,
+        "promotions": 0
+      }
+    },
+    {
+      "event_id": "URAN-ONGC-2019",
+      "name": "ONGC Uran gas processing plant fire (Raigad; Maharashtra)",
+      "kind": "gas_plant_fire",
+      "point": [
+        18.8641,
+        72.9274
+      ],
+      "location_basis": "osm w49501334: unnamed works (1.04 km2) with a flare node; the ONGC plant by position not by name",
+      "match_m": 1100,
+      "window_utc": [
+        "2019-09-03 01:30:00+00:00",
+        "2019-09-04 01:30:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "no signature",
+      "detections": 0,
+      "by_road": {},
+      "by_category": {},
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": null,
+      "first_flag_h": null,
+      "first_detection_utc": null,
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": null,
+      "max_frp": null,
+      "instruments": [],
+      "reason": null,
+      "promoted_after": [],
+      "lead_flag_days": 0,
+      "lead_detections": 47,
+      "chance": 0.0,
+      "nearest_source": {
+        "source_id": 57,
+        "cls": "oil_gas",
+        "osm_name": null,
+        "distance_m": 736
+      },
+      "replay": {
+        "detections": 96,
+        "promotions": 0
+      }
+    },
+    {
+      "event_id": "BPCL-MUMBAI-2018",
+      "name": "BPCL Mumbai refinery hydrocracker fire (Mahul; Chembur)",
+      "kind": "refinery_fire",
+      "point": [
+        19.0171,
+        72.8942
+      ],
+      "location_basis": "osm w430012318: Mumbai Refinery Mahul (operator BPCL; 1.77 km2)",
+      "match_m": 1300,
+      "window_utc": [
+        "2018-08-08 09:15:00+00:00",
+        "2018-08-09 09:15:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "no signature",
+      "detections": 0,
+      "by_road": {},
+      "by_category": {},
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": null,
+      "first_flag_h": null,
+      "first_detection_utc": null,
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": null,
+      "max_frp": null,
+      "instruments": [],
+      "reason": null,
+      "promoted_after": [],
+      "lead_flag_days": 0,
+      "lead_detections": 3,
+      "chance": 0.0,
+      "nearest_source": {
+        "source_id": 54,
+        "cls": "oil_gas",
+        "osm_name": "Mumbai Refinery Mahul",
+        "distance_m": 490
+      },
+      "replay": {
+        "detections": 7,
+        "promotions": 0
+      }
+    },
+    {
+      "event_id": "HPCL-VISAKH-2013",
+      "name": "HPCL Visakh refinery cooling-tower fire (Visakhapatnam)",
+      "kind": "refinery_fire",
+      "point": [
+        17.6943,
+        83.245
+      ],
+      "location_basis": "osm w280178624: HPCL Visakh refinery (1.83 km2)",
+      "match_m": 1300,
+      "window_utc": [
+        "2013-08-23 11:16:00+00:00",
+        "2013-08-24 11:16:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "no signature",
+      "detections": 0,
+      "by_road": {},
+      "by_category": {},
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": null,
+      "first_flag_h": null,
+      "first_detection_utc": null,
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": 2869,
+      "max_frp": null,
+      "instruments": [],
+      "reason": null,
+      "promoted_after": [],
+      "lead_flag_days": 0,
+      "lead_detections": 1,
+      "chance": 0.0,
+      "nearest_source": {
+        "source_id": 318,
+        "cls": "oil_gas",
+        "osm_name": "Hindustan Petroleum Corporation Limited",
+        "distance_m": 294
+      },
+      "replay": {
+        "detections": 89,
+        "promotions": 0
+      }
+    },
+    {
+      "event_id": "HPCL-VISAKH-2021",
+      "name": "HPCL Visakh refinery CDU-III fire (Visakhapatnam)",
+      "kind": "refinery_fire",
+      "point": [
+        17.6943,
+        83.245
+      ],
+      "location_basis": "osm w280178624: HPCL Visakh refinery (1.83 km2)",
+      "match_m": 1300,
+      "window_utc": [
+        "2021-05-25 09:30:00+00:00",
+        "2021-05-26 09:30:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "no signature",
+      "detections": 0,
+      "by_road": {},
+      "by_category": {},
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": null,
+      "first_flag_h": null,
+      "first_detection_utc": null,
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": 19446,
+      "max_frp": null,
+      "instruments": [],
+      "reason": null,
+      "promoted_after": [],
+      "lead_flag_days": 0,
+      "lead_detections": 31,
+      "chance": 0.0,
+      "nearest_source": {
+        "source_id": 318,
+        "cls": "oil_gas",
+        "osm_name": "Hindustan Petroleum Corporation Limited",
+        "distance_m": 294
+      },
+      "replay": {
+        "detections": 383,
+        "promotions": 0
+      }
+    },
+    {
+      "event_id": "IOC-HALDIA-2021",
+      "name": "IOC Haldia refinery flash fire (Purba Medinipur; West Bengal)",
+      "kind": "refinery_fire",
+      "point": [
+        22.048028,
+        88.106528
+      ],
+      "location_basis": "wikipedia: refinery point",
+      "match_m": 2000,
+      "window_utc": [
+        "2021-12-21 09:30:00+00:00",
+        "2021-12-22 09:30:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "routine",
+      "detections": 7,
+      "by_road": {
+        "2": 7
+      },
+      "by_category": {
+        "industrial": 7
+      },
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": 9.9,
+      "first_flag_h": null,
+      "first_detection_utc": "2021-12-21 19:26:00+00:00",
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": 1526,
+      "max_frp": 2.1,
+      "instruments": [
+        "VIIRS"
+      ],
+      "reason": "normal for this site: hottest pixel 0.9 MW against this site's VIIRS|N|post_monsoon baseline (median 0.5, p99 2.8)",
+      "promoted_after": [],
+      "lead_flag_days": 2,
+      "lead_detections": 225,
+      "chance": 0.033,
+      "nearest_source": {
+        "source_id": 520,
+        "cls": "oil_gas",
+        "osm_name": "Indian Oil Corporation Ltd IOCL Refinery",
+        "distance_m": 478
+      },
+      "replay": {
+        "detections": 383,
+        "promotions": 0
+      }
+    },
+    {
+      "event_id": "GAIL-NAGARAM-2014",
+      "name": "GAIL gas pipeline explosion and fire (Nagaram; East Godavari)",
+      "kind": "pipeline_fire",
+      "point": [
+        16.501106,
+        81.910726
+      ],
+      "location_basis": "wikipedia: explosion point",
+      "match_m": 2000,
+      "window_utc": [
+        "2014-06-27 00:00:00+00:00",
+        "2014-06-28 00:00:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "no signature",
+      "detections": 0,
+      "by_road": {},
+      "by_category": {},
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": null,
+      "first_flag_h": null,
+      "first_detection_utc": null,
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": null,
+      "max_frp": null,
+      "instruments": [],
+      "reason": null,
+      "promoted_after": [],
+      "lead_flag_days": 0,
+      "lead_detections": 0,
+      "chance": 0.0,
+      "nearest_source": {
+        "source_id": 251,
+        "cls": "heavy_industry",
+        "osm_name": "ONGC Kesanapalli GGS",
+        "distance_m": 10216
+      },
+      "replay": {
+        "detections": 9,
+        "promotions": 0
+      }
+    },
+    {
+      "event_id": "NLC-NEYVELI-2020",
+      "name": "NLC Neyveli TPS-II unit 5 boiler explosion (Cuddalore; Tamil Nadu)",
+      "kind": "boiler_explosion",
+      "point": [
+        11.5541,
+        79.4423
+      ],
+      "location_basis": "osm: Neyveli Thermal Power Station II (3.10 km2)",
+      "match_m": 1500,
+      "window_utc": [
+        "2020-07-01 04:15:00+00:00",
+        "2020-07-02 04:15:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "no signature",
+      "detections": 0,
+      "by_road": {},
+      "by_category": {},
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": null,
+      "first_flag_h": null,
+      "first_detection_utc": null,
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": null,
+      "max_frp": null,
+      "instruments": [],
+      "reason": null,
+      "promoted_after": [],
+      "lead_flag_days": 0,
+      "lead_detections": 0,
+      "chance": 0.0,
+      "nearest_source": {
+        "source_id": 200,
+        "cls": "heavy_industry",
+        "osm_name": null,
+        "distance_m": 48433
+      },
+      "replay": {
+        "detections": 105,
+        "promotions": 0
+      }
+    },
+    {
+      "event_id": "SAIL-BHILAI-2018",
+      "name": "Bhilai Steel Plant coke-oven gas pipeline explosion (Durg; Chhattisgarh)",
+      "kind": "steel_plant_explosion",
+      "point": [
+        21.1837,
+        81.3838
+      ],
+      "location_basis": "osm w65310813: Bhilai Steel Plant (14.37 km2)",
+      "match_m": 2600,
+      "window_utc": [
+        "2018-10-09 05:00:00+00:00",
+        "2018-10-10 05:00:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "routine",
+      "detections": 1,
+      "by_road": {
+        "2": 1
+      },
+      "by_category": {
+        "industrial": 1
+      },
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": 14.8,
+      "first_flag_h": null,
+      "first_detection_utc": "2018-10-09 19:45:00+00:00",
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": 570,
+      "max_frp": 1.6,
+      "instruments": [
+        "VIIRS"
+      ],
+      "reason": "normal for this site: hottest pixel 1.6 MW against this site's VIIRS|N|post_monsoon baseline (median 2.5, p99 6.3)",
+      "promoted_after": [],
+      "lead_flag_days": 3,
+      "lead_detections": 209,
+      "chance": 0.05,
+      "nearest_source": {
+        "source_id": 229,
+        "cls": "heavy_industry",
+        "osm_name": null,
+        "distance_m": 510
+      },
+      "replay": {
+        "detections": 552,
+        "promotions": 0
+      }
+    },
+    {
+      "event_id": "TATA-JAMSHEDPUR-2022",
+      "name": "Tata Steel Jamshedpur coke plant gas-line blast and fire",
+      "kind": "steel_plant_explosion",
+      "point": [
+        22.7854,
+        86.1995
+      ],
+      "location_basis": "osm: Tata Steel Jamshedpur works (6.93 km2)",
+      "match_m": 2000,
+      "window_utc": [
+        "2022-05-07 04:50:00+00:00",
+        "2022-05-08 04:50:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "routine",
+      "detections": 15,
+      "by_road": {
+        "2": 15
+      },
+      "by_category": {
+        "industrial": 15
+      },
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": 1.8,
+      "first_flag_h": null,
+      "first_detection_utc": "2022-05-07 06:38:00+00:00",
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": 137,
+      "max_frp": 4.8,
+      "instruments": [
+        "VIIRS"
+      ],
+      "reason": "normal for this site: hottest pixel 3.1 MW against this site's VIIRS|D|pre_monsoon baseline (median 7.5, p99 45.8)",
+      "promoted_after": [],
+      "lead_flag_days": 0,
+      "lead_detections": 632,
+      "chance": 0.0,
+      "nearest_source": {
+        "source_id": 454,
+        "cls": "heavy_industry",
+        "osm_name": "Jojobera Tata Unit 6 Power Station",
+        "distance_m": 792
+      },
+      "replay": {
+        "detections": 1492,
+        "promotions": 1
+      }
+    },
+    {
+      "event_id": "DEEPAK-NANDESARI-2022",
+      "name": "Deepak Nitrite plant explosion and fire (Nandesari; Vadodara)",
+      "kind": "chemical_plant_fire",
+      "point": [
+        22.4178,
+        73.09491
+      ],
+      "location_basis": "nominatim: Nandesari railway station (estate-level)",
+      "match_m": 3000,
+      "window_utc": [
+        "2022-06-02 12:30:00+00:00",
+        "2022-06-03 12:30:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "no signature",
+      "detections": 0,
+      "by_road": {},
+      "by_category": {},
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": null,
+      "first_flag_h": null,
+      "first_detection_utc": null,
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": 22110,
+      "max_frp": null,
+      "instruments": [],
+      "reason": null,
+      "promoted_after": [],
+      "lead_flag_days": 0,
+      "lead_detections": 3,
+      "chance": 0.0,
+      "nearest_source": {
+        "source_id": 62,
+        "cls": "oil_gas",
+        "osm_name": "Gujarat Refinery",
+        "distance_m": 6220
+      },
+      "replay": {
+        "detections": 229,
+        "promotions": 0
+      }
+    },
+    {
+      "event_id": "VISAKHA-SOLVENTS-2020",
+      "name": "Visakha Solvents reactor explosions and fire (JN Pharma City; Parawada)",
+      "kind": "chemical_plant_fire",
+      "point": [
+        17.6597,
+        83.0823
+      ],
+      "location_basis": "osm: Jawaharlal Nehru Pharma City estate outline (6.26 km2)",
+      "match_m": 1900,
+      "window_utc": [
+        "2020-07-13 17:30:00+00:00",
+        "2020-07-14 17:30:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "no signature",
+      "detections": 0,
+      "by_road": {},
+      "by_category": {},
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": null,
+      "first_flag_h": null,
+      "first_detection_utc": null,
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": null,
+      "max_frp": null,
+      "instruments": [],
+      "reason": null,
+      "promoted_after": [],
+      "lead_flag_days": 0,
+      "lead_detections": 0,
+      "chance": 0.0,
+      "nearest_source": {
+        "source_id": 308,
+        "cls": "heavy_industry",
+        "osm_name": null,
+        "distance_m": 12640
+      },
+      "replay": {
+        "detections": 68,
+        "promotions": 0
+      }
+    },
+    {
+      "event_id": "PORUS-AKKIREDDIGUDEM-2022",
+      "name": "Porus Laboratories reactor explosion and fire (Akkireddigudem; Eluru)",
+      "kind": "chemical_plant_fire",
+      "point": [
+        16.88149,
+        80.90325
+      ],
+      "location_basis": "nominatim: Akkireddigudem village in Musunuru mandal (village-level; a second village shares the name)",
+      "match_m": 3000,
+      "window_utc": [
+        "2022-04-12 18:30:00+00:00",
+        "2022-04-14 18:30:00+00:00"
+      ],
+      "time_known": false,
+      "outcome": "no signature",
+      "detections": 0,
+      "by_road": {},
+      "by_category": {},
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": null,
+      "first_flag_h": null,
+      "first_detection_utc": null,
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": 25308,
+      "max_frp": null,
+      "instruments": [],
+      "reason": null,
+      "promoted_after": [],
+      "lead_flag_days": 0,
+      "lead_detections": 0,
+      "chance": 0.0,
+      "nearest_source": {
+        "source_id": 214,
+        "cls": "mining",
+        "osm_name": "Coalfields",
+        "distance_m": 69594
+      },
+      "replay": {
+        "detections": 216,
+        "promotions": 0
+      }
+    },
+    {
+      "event_id": "AETHER-SACHIN-2023",
+      "name": "Aether Industries reactor blast and fire (Sachin GIDC; Surat)",
+      "kind": "chemical_plant_fire",
+      "point": [
+        21.0927,
+        72.8581
+      ],
+      "location_basis": "osm: Sachin GIDC estate outline (6.47 km2)",
+      "match_m": 1900,
+      "window_utc": [
+        "2023-11-28 20:05:00+00:00",
+        "2023-11-29 20:05:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "no signature",
+      "detections": 0,
+      "by_road": {},
+      "by_category": {},
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": null,
+      "first_flag_h": null,
+      "first_detection_utc": null,
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": 13981,
+      "max_frp": null,
+      "instruments": [],
+      "reason": null,
+      "promoted_after": [],
+      "lead_flag_days": 2,
+      "lead_detections": 5,
+      "chance": 0.033,
+      "nearest_source": {
+        "source_id": 53,
+        "cls": "heavy_industry",
+        "osm_name": "OIl & Natural Gas Corporation",
+        "distance_m": 14244
+      },
+      "replay": {
+        "detections": 1326,
+        "promotions": 1
+      }
+    },
+    {
+      "event_id": "AMUDAN-DOMBIVLI-2024",
+      "name": "Amudan Chemicals reactor explosion and fire (Dombivli MIDC; Thane)",
+      "kind": "chemical_plant_fire",
+      "point": [
+        19.20978,
+        73.10549
+      ],
+      "location_basis": "nominatim: MIDC Road; Dombivli East (estate-level)",
+      "match_m": 3000,
+      "window_utc": [
+        "2024-05-23 08:10:00+00:00",
+        "2024-05-24 08:10:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "misclassified",
+      "detections": 1,
+      "by_road": {
+        "1": 1
+      },
+      "by_category": {
+        "unclassified": 1
+      },
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": 0.9,
+      "first_flag_h": null,
+      "first_detection_utc": "2024-05-23 09:02:00+00:00",
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": 1405,
+      "max_frp": 8.6,
+      "instruments": [
+        "VIIRS"
+      ],
+      "reason": "built-up land with no mapped facility within 375 m: an unmapped plant, or an urban fire",
+      "promoted_after": [],
+      "lead_flag_days": 0,
+      "lead_detections": 0,
+      "chance": 0.0,
+      "nearest_source": {
+        "source_id": 61,
+        "cls": "mining",
+        "osm_name": null,
+        "distance_m": 13146
+      },
+      "replay": {
+        "detections": 1108,
+        "promotions": 0
+      }
+    },
+    {
+      "event_id": "HARDA-2024",
+      "name": "Harda firecracker factory explosion (Bairagarh; Madhya Pradesh)",
+      "kind": "fireworks_explosion",
+      "point": [
+        22.32772,
+        77.0787
+      ],
+      "location_basis": "nominatim: Bairagarh village boundary (village-level)",
+      "match_m": 3000,
+      "window_utc": [
+        "2024-02-06 05:30:00+00:00",
+        "2024-02-07 05:30:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "misclassified",
+      "detections": 3,
+      "by_road": {
+        "1": 3
+      },
+      "by_category": {
+        "agricultural": 3
+      },
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": 2.8,
+      "first_flag_h": null,
+      "first_detection_utc": "2024-02-06 08:19:00+00:00",
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": 107,
+      "max_frp": 6.0,
+      "instruments": [
+        "MODIS",
+        "VIIRS"
+      ],
+      "reason": "WorldCover cropland, outside the main stubble-burning seasons",
+      "promoted_after": [],
+      "lead_flag_days": 0,
+      "lead_detections": 0,
+      "chance": 0.0,
+      "nearest_source": {
+        "source_id": 152,
+        "cls": "heavy_industry",
+        "osm_name": null,
+        "distance_m": 76583
+      },
+      "replay": {
+        "detections": 11,
+        "promotions": 0
+      }
+    },
+    {
+      "event_id": "SOLAR-NAGPUR-2023",
+      "name": "Solar Industries cast-booster plant explosion (Bazargaon; Nagpur)",
+      "kind": "explosives_explosion",
+      "point": [
+        21.13875,
+        78.77114
+      ],
+      "location_basis": "nominatim: Bazargaon village (village-level)",
+      "match_m": 3000,
+      "window_utc": [
+        "2023-12-17 04:00:00+00:00",
+        "2023-12-18 04:00:00+00:00"
+      ],
+      "time_known": true,
+      "outcome": "no signature",
+      "detections": 0,
+      "by_road": {},
+      "by_category": {},
+      "alerts": {},
+      "watch": 0,
+      "first_detection_h": null,
+      "first_flag_h": null,
+      "first_detection_utc": null,
+      "first_flag_utc": null,
+      "flag_categories": {},
+      "nearest_in_window_m": 23044,
+      "max_frp": null,
+      "instruments": [],
+      "reason": null,
+      "promoted_after": [],
+      "lead_flag_days": 0,
+      "lead_detections": 0,
+      "chance": 0.0,
+      "nearest_source": {
+        "source_id": 165,
+        "cls": "heavy_industry",
+        "osm_name": null,
+        "distance_m": 50475
+      },
+      "replay": {
+        "detections": 16,
+        "promotions": 0
+      }
+    }
+  ]
+}

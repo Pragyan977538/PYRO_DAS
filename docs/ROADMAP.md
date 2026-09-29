@@ -45,7 +45,7 @@ differentiation and goes first. Stage 10's headline metric is not optional.
 | 7 | **Done 2026-09-29.** 461,008 events scored with decompositions; remote big fires score ≤ 17.8, big fires at critical assets median 79.2 (`reports/stage7_risk.md`) |
 | 8 | **Done 2026-09-29.** FastAPI: sources, detections, events (with risk breakdown), timeseries, observability, vector tiles; acceptance calls pass on the live server |
 | 9 | **Done 2026-09-29, one gap.** The map works offline and every acceptance behaviour was checked in a browser; `docker compose up` is written but unverified (no Docker on the build machine) |
-| 10 | Not started |
+| 10 | **Done 2026-09-29; the headline misses.** Per-fire recall 1 of 18 verified accidents (chance 0.12); FIRMS saw only 6 of them. Every metric, the reasons for each miss and the limitations: `reports/validation.md`. Demo path scripted and checked |
 
 ---
 
@@ -749,6 +749,44 @@ recall, and they are reported, not hidden.
 runs the three-minute demo path end to end without intervention.
 
 **Blocked by:** Stage 9, and the verified event set. **Effort:** one day.
+
+**Rules fixed before any event was scored** (`scripts/validate_events.py`):
+- An event's location comes from a publication or a map (Wikipedia coordinates, an OSM
+  facility outline, a Nominatim village or estate point) — **never from the satellite
+  record**, or a hit is guaranteed.
+- Match radius: an OSM outline's equivalent radius + 500 m; 2 km around a published
+  plant point; 3 km around a village, estate or oilfield point.
+- Window: the published burning period, or 24 h from the published start; the start date
+  and the next (IST) when no time of day is published. The replay is dry and starts 60
+  days earlier.
+- **Flagged** = any Road C alert, or a Road A detection classified industrial, within the
+  radius and window. Otherwise: routine (Road B), misclassified (Road A, other class), or
+  no signature. A chance rate from the 60 lead days is reported next to each hit.
+
+**Result (2026-09-29):** accepted; the headline number is reported, not met. Full
+report: `reports/validation.md`.
+- **The verified set:** 20 accidents, 2013–2024, each with a source URL. 18 are located;
+  Dahej 2020 and Atchutapuram 2024 still need a person to pin the plant.
+- **Per-fire recall: 1 of 18 (5.6%)**, against 0.12 expected by chance. The one hit is
+  Baghjan: promoted 21 days into the fire, then alerting on every pass. Its alerts carry
+  Road A's class, "forest", because no well is mapped within 375 m of the pad.
+- **FIRMS saw 6 of 18.** 12 accidents left no detection: fires of a few hours between
+  passes, monsoon cloud, heat inside a building (Aether, Surat: three passes during a
+  7-hour fire, nothing within 15 km).
+- **Of the six seen:** three were Road B at running plants, below the plants' own
+  baselines (Haldia, Bhilai, Tata Steel); two were unmapped factories misrouted by land
+  cover (Harda as cropland, Dombivli as built-up).
+- **Mean time to the first FIRMS detection:** 6.0 h (n = 5). No alerted event has a
+  published time of day, so there is no mean time-to-alert.
+- **Everything else holds:**
+  - Model 1: 65.2% (balanced 61.2%) against the 77% reference that used temperature.
+  - Road B false alerts: 0.040% confirmed, 0.000% provisional.
+  - Road A discards nothing; 0.98% is left unclassified, each with a reason.
+  - Registry: 83.4% of active GIHS objects found; 98.6% of FIRMS `type=2` detections
+    routed to a source.
+- **The demo:** `make demo` / `.\make.ps1 demo` runs six map stops in about three
+  minutes. `--check` / `-Check` verifies every stop against the API. Both wrappers were
+  run end to end, starting and stopping their own server.
 
 ---
 

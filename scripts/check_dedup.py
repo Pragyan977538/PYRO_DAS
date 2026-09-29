@@ -2,7 +2,8 @@
 
     python scripts/check_dedup.py
 
-For every event in reference/verified_events.csv: replay inference over its
+For every event in reference/verified_events.csv with a located fire point
+(``fire_lat``): replay inference over its
 window around it (dry, nothing written), assemble events, and check that the
 fire's detections -- within the event's radius, between its published dates --
 all belong to exactly one event. Two events for one fire would be two alerts for
@@ -76,6 +77,9 @@ def check(row) -> dict:
 
 def main() -> int:
     verified = pd.read_csv(EVENTS).set_index("event_id")
+    # only events whose fire is located on its own: at a published point with a
+    # facility-sized radius, a plant's routine flare shares the circle with the fire
+    verified = verified[verified["fire_lat"].notna()]
     results = [check(row) for _, row in verified.iterrows()]
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "dedup.json").write_text(json.dumps(results, indent=2, default=str),

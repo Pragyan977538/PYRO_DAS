@@ -6,6 +6,7 @@ reports/*.json
 reports/**/*.json
 # The Stage 4 acceptance artifact: small, and named in docs/ROADMAP.md.
 !reports/model1_metrics.json
+!reports/validation/events.json
 *.pbf
 *.osm
 __pycache__/

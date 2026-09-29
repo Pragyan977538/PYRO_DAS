@@ -377,6 +377,10 @@ government agency.
 
 - `docs/ROADMAP.md` — the build stages with acceptance criteria. **Read the relevant
   stage before starting work.**
+- `reports/validation.md` — every headline number in one place: per-fire recall on the
+  verified accidents, why each was missed, and the limitations table.
+- `reference/verified_events.csv` — the verified industrial accidents, each with a
+  source URL. Locations come from publications and maps, never from FIRMS.
 - `reports/stage3_registry.md` — the registry on the full archive: 557 sources, every
   acceptance floor, and the sweep that moved the gate to three years.
 - `reports/stage1_5b_multiyear.md` — the gate on three real years, the demo refineries,
@@ -391,6 +395,18 @@ government agency.
   biomass fires as point sources, so its numbers are upper bounds.
 
 ## Measured numbers
+
+**Real data, verified industrial accidents: the headline** — 18 located accidents,
+2013–2024, each replayed dry from 60 days before it (`reports/validation.md`):
+
+- Per-fire recall **1 of 18** (Baghjan), against 0.12 expected by chance. Baghjan
+  alerted from promotion, 21 days in, under Road A's class "forest".
+- FIRMS saw only **6 of 18**. The other 12 burned between passes, under monsoon cloud, or
+  inside buildings.
+- Of the six seen:
+  - three were Road B, below their plants' own baselines (Haldia, Bhilai, Tata Steel)
+  - two were unmapped factories that Road A classed by land cover (Harda, Dombivli)
+- Mean time to the first FIRMS detection **6.0 h** (n = 5).
 
 **Real data, full archive: the registry.** VIIRS over India, 2012–2024, 11,485,898
 detections, plus 1,068,405 MODIS, from `reports/stage3_registry.md`:

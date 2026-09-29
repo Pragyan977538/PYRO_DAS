@@ -121,6 +121,8 @@ def test_reasons_and_classes():
     row = events.iloc[0]
     assert row["event_class"] == "agricultural" and row["category"] == "agricultural"
     assert row["reason"] == "agricultural fire: 3 detections on 2 days, peak 10 MW"
+    one, _ = _run([_det(0, 0, cls="agricultural", cat="agricultural")])
+    assert one["reason"].iat[0] == "agricultural fire: 1 detection on 1 day, peak 10 MW"
 
 
 def test_assembler_state_is_incremental():

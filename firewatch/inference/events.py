@@ -267,7 +267,8 @@ def _to_lonlat(coords: np.ndarray) -> np.ndarray:
 
 
 def _reason(r) -> str:
-    span = f"{r.n_detections} detections on {r.days} day{'s' if r.days != 1 else ''}"
+    span = (f"{r.n_detections} detection{'s' if r.n_detections != 1 else ''} on "
+            f"{r.days} day{'s' if r.days != 1 else ''}")
     # A source Model 1 has not classified yet has no class: say so, not "nan".
     cls = (r.event_class if isinstance(r.event_class, str) else "unclassified").replace("_", " ")
     if r.kind == "anomaly":

@@ -37,6 +37,8 @@ const className = (c) => CLASS_NAMES[c] || words(c);
 
 const $ = (id) => document.getElementById(id);
 const fmt = new Intl.NumberFormat("en-IN");
+/* FRP to one decimal: the baselines are medians of MW-scale readings. */
+const mw = (v) => (v == null ? "–" : Number(v).toFixed(1));
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const words = (s) => String(s ?? "").replace(/_/g, " ");
@@ -366,13 +368,13 @@ function baselineGauge(b) {
   const verdict = b.alert ? `<b class="badge ${b.alert}">${ALERT_WORDS[b.alert]}</b>`
     : b.breach ? "breaches (one pass does not confirm)" : "within this site's normal envelope";
   return `<h4>FRP against this site's own baseline</h4>
-    <div class="gauge" role="img" aria-label="Hottest pixel ${b.pass_max_frp} MW; median ${b.med}; p99 ${b.p99}">
+    <div class="gauge" role="img" aria-label="Hottest pixel ${mw(b.pass_max_frp)} MW; median ${mw(b.med)}; p99 ${mw(b.p99)}">
       <div class="bar" style="width:${pct(b.pass_max_frp)}"></div>
       <div class="mark" style="left:${pct(b.med)}" title="median"></div>
       <div class="mark p99" style="left:${pct(b.p99)}" title="p99"></div>
     </div>
-    <div class="gauge-legend"><span>median ${b.med} MW</span><span>p99 ${b.p99} MW</span></div>
-    <dl class="facts">${fact("This pass", `${b.pass_max_frp} MW (hottest pixel)`)}
+    <div class="gauge-legend"><span>median ${mw(b.med)} MW</span><span>p99 ${mw(b.p99)} MW</span></div>
+    <dl class="facts">${fact("This pass", `${mw(b.pass_max_frp)} MW (hottest pixel)`)}
       ${fact("Robust z", b.z)}${fact("Baseline", esc(b.baseline_key))}${fact("Verdict", verdict)}</dl>`;
 }
 
@@ -390,7 +392,7 @@ async function openDetection(id) {
     <dl class="facts">
       ${fact("Detected", `${esc(p.acq_datetime.replace("T", " ").slice(0, 16))} UTC`)}
       ${fact("Satellite", `${esc(p.sensor)} (${esc(p.instrument)}, ${p.daynight === "N" ? "night" : "day"} pass)`)}
-      ${fact("FRP", `${p.frp} MW`)}
+      ${fact("FRP", `${mw(p.frp)} MW`)}
       ${fact("Class", `${esc(className(p.pred_class))}${p.pred_conf != null ? ` (Model 1, confidence ${(p.pred_conf * 100).toFixed(0)}%)` : " (Road A rule)"}`)}
       ${fact("Temperature", temp)}
       ${fact("Nearest named facility", fac ? `${esc(fac.name)} (${esc(words(fac.label_group))}), ${fmt.format(fac.distance_m)} m` : "none within 5 km")}
@@ -448,7 +450,7 @@ async function openEvent(id) {
     <div class="riskbig">${p.risk_score != null ? p.risk_score.toFixed(0) : "–"}<span class="muted" style="font-size:14px"> / 100</span></div>
     <div class="muted">${esc(b.formula || "")}</div>
     ${term("Hazard", h, h ? `peak ${h.peak_frp_mw} MW (above ${(h.frp_percentile * 100).toFixed(0)}% of India's fires), ${h.pixels} pixels, ${esc(h.growth)}` : "")}
-    ${term("Exposure", x, x ? `${fmt.format(x.pop_5km)} people within 5 km; ${x.pop_downwind_10km != null ? `${fmt.format(x.pop_downwind_10km)} downwind (towards ${x.downwind_bearing_deg}°)` : "no wind record"}; ${x.assets_10km} critical assets within 10 km` : "")}
+    ${term("Exposure", x, x ? `${fmt.format(x.pop_5km)} people within 5 km; ${x.pop_downwind_10km != null ? `${fmt.format(x.pop_downwind_10km)} downwind (towards ${x.downwind_bearing_deg}°)` : "no wind record"}; ${x.assets_10km} critical asset${x.assets_10km === 1 ? "" : "s"} within 10 km` : "")}
     ${term("Vulnerability", v, v ? (v.nearest ? `${esc(v.nearest)} (${esc(words(v.nearest_type))}), ${fmt.format(v.distance_m)} m` : "no critical asset within 2 km") + (v.own_class ? `; the source itself: ${esc(words(v.own_class))}` : "") : "")}
     <dl class="facts">
       ${fact("First seen", esc(p.first_seen.slice(0, 16).replace("T", " ")))}
@@ -502,7 +504,7 @@ function drawChart(slot, rows, ref) {
     <text x="${L}" y="${H - 6}">${esc(rows[0].day)}</text>
     <text x="${W - R}" y="${H - 6}" text-anchor="end">${esc(rows[rows.length - 1].day)}</text>
     ${ref.p99 ? `<line class="p99" x1="${L}" x2="${W - R}" y1="${Y(ref.p99)}" y2="${Y(ref.p99)}"/>
-      <text x="${W - R}" y="${Y(ref.p99) - 3}" text-anchor="end">p99 ${ref.p99} MW</text>` : ""}
+      <text x="${W - R}" y="${Y(ref.p99) - 3}" text-anchor="end">p99 ${mw(ref.p99)} MW</text>` : ""}
     ${ref.med ? `<line class="med" x1="${L}" x2="${W - R}" y1="${Y(ref.med)}" y2="${Y(ref.med)}"/>` : ""}
     ${rows.length > 1 ? `<polyline class="line" points="${pts.map((p) => p.join(",")).join(" ")}"/>` : ""}
     ${pts.map((p, i) => `<circle class="${rows[i].alert ? "alert" : "dot"}" cx="${p[0]}" cy="${p[1]}" r="${rows[i].alert ? 3.5 : rows.length > 200 ? 1.2 : 2.2}"/>`).join("")}
