@@ -12,7 +12,7 @@ PY := .venv/bin/python
 BOOTSTRAP ?= python3.13
 endif
 
-.PHONY: help install db migrate psql test lint fixture backfill registry spike down clean logs
+.PHONY: help install db migrate psql test lint fixture backfill registry labels train spike down clean logs
 
 help:
 	@echo "FireWatch - build tasks (Windows: .\\make.ps1 <target>)"
@@ -25,6 +25,8 @@ help:
 	@echo "  make fixture   stage 1: write the synthetic test fixture to data/mock"
 	@echo "  make backfill  stage 2: load everything into the database, then check it"
 	@echo "  make registry  stage 3: build the source registry, then check it"
+	@echo "  make labels    stage 4: weak labels for every registry source"
+	@echo "  make train     stage 4: train Model 1 and write reports/model1_metrics.json"
 	@echo "  make spike     stage 1.5: cluster one real year of FIRMS (no database)"
 	@echo "  make down      stop containers (data kept)"
 	@echo "  make clean     stop containers AND delete the volume"
@@ -73,6 +75,14 @@ registry:
 	@echo ">> stage 3: registry (gate, cluster, fingerprints, baselines)"
 	$(PY) scripts/build_registry.py
 	$(PY) scripts/check_registry.py
+
+labels:
+	@echo ">> stage 4: weak labels (OSM, power plants, WorldCover)"
+	$(PY) scripts/build_labels.py
+
+train:
+	@echo ">> stage 4: Model 1 (leakage guard, block CV, final fit)"
+	$(PY) scripts/train.py
 
 spike:
 	@echo ">> stage 1.5: one real year of FIRMS, clustered three ways"

@@ -30,7 +30,7 @@ FEATURES = [
     "frp_med", "frp_mad", "frp_p90", "frp_p99", "frp_robust_cv",
     "frp_night_med", "frp_day_med",
     "month_entropy", "peak_month_share", "monsoon_share",
-    "bt4_night_med", "bt4_day_med", "bt5_night_med", "bt45_night_med",
+    "bt4_night_med", "bt4_day_med", "bt5_night_med", "bt45_night_med", "bt45_day_med",
     "temp_med", "temp_p90", "temp_cov", "area_med",
 ]
 MONSOON = (6, 7, 8, 9)
@@ -153,6 +153,7 @@ def fingerprints(det: pd.DataFrame, clusters: pd.DataFrame,
             "bt4_day_med": _nan(np.median, day["bt4"].to_numpy()),
             "bt5_night_med": _nan(np.median, night["bt5"].to_numpy()),
             "bt45_night_med": _nan(np.median, (night["bt4"] - night["bt5"]).to_numpy()),
+            "bt45_day_med": _nan(np.median, (day["bt4"] - day["bt5"]).to_numpy()),
             "temp_med": _nan(np.median, g["temp"].to_numpy()),
             "temp_p90": _nan(np.quantile, g["temp"].to_numpy(), 0.90),
             "temp_cov": float(np.isfinite(g["temp"].to_numpy()).mean()),

@@ -114,6 +114,8 @@ function Show-Help {
     Write-Host '  fixture   stage 1: write the synthetic test fixture to data\mock'
     Write-Host '  backfill  stage 2: load everything into the database, then check it'
     Write-Host '  registry  stage 3: build the source registry, then check it'
+    Write-Host '  labels    stage 4: weak labels for every registry source'
+    Write-Host '  train     stage 4: train Model 1 and write reports\model1_metrics.json'
     Write-Host '  spike     stage 1.5: cluster one real year of FIRMS (no database)'
     Write-Host '  down      stop containers (data kept)'
     Write-Host '  clean     stop containers AND delete the volume'
@@ -203,6 +205,16 @@ try {
             Write-Step 'stage 3: registry (gate, cluster, fingerprints, baselines)'
             Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\build_registry.py')
             Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\check_registry.py')
+        }
+        'labels' {
+            Assert-Venv
+            Write-Step 'stage 4: weak labels (OSM, power plants, WorldCover)'
+            Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\build_labels.py')
+        }
+        'train' {
+            Assert-Venv
+            Write-Step 'stage 4: Model 1 (leakage guard, block CV, final fit)'
+            Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\train.py')
         }
         'spike' {
             Assert-Venv

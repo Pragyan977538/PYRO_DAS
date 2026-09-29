@@ -78,6 +78,9 @@ nothing. Concretely:
 - **Road A is rules plus physics, not a trained model.** Its inputs (land cover, distance
   to industry) are exactly the layers every available label is built from, so a model
   trained there could only memorise the rule. Model 1 is the only learned model.
+- **No absolute brightness temperatures in Model 1.** A pixel's I4 / I5 temperature
+  carries its background's climate — Rajasthan in May, Assam in the monsoon — so it is
+  a location proxy. The I4 − I5 contrast carries the fire and is used.
 
 `scripts/train.py` must declare the inputs used to build each label (`LABEL_INPUTS`) and
 **assert** that `FEATS ∩ LABEL_INPUTS` is empty, failing loudly if not.
@@ -85,22 +88,35 @@ nothing. Concretely:
 ### Weak-label sources, class by class
 
 Approved 2026-09-29, from a census of how many *registry sources* each group actually
-labels (the 477 sources of the 2021–2023 gate; `reports/stage1_5b_multiyear.md`). A
-source takes the first group, in table order, with an OSM object within 1 km. Where a
-class has no honest label source, say so — never invent labels to fill it.
+labels (`reports/stage1_5b_multiyear.md`), and recounted in Stage 4 on the 557-source
+registry (`firewatch/models/labels.py`). A source takes the first group with evidence
+within 1 km of any of its cells, most specific first:
+
+```
+oil_gas > steel_cement > thermal_power (OSM or WRI GPPD) > mining > kiln (no label) > industrial_other
+```
+
+That is the order the approved census counted in. Mining sits above generic
+`landuse=industrial` because coalfields are ringed by washeries and depots tagged
+industrial, and the fire is in the mine. Where a class has no honest label source, say
+so — never invent labels to fill it.
 
 | Model 1 class | Label sources | Sources labelled | Caveat |
 |---|---|---|---|
-| oil_gas | `industrial=refinery`, `industrial=oil`, `man_made=petroleum_well`, `man_made=flare` | 27 | Thin, and the class NTRO cares most about: report its recall separately. If it is unusable, the map names the nearest OSM oil and gas facility — a display lookup, never a class |
-| heavy_industry | `power=plant` with `plant:source` coal/gas/oil/diesel/biomass; `man_made=works`; `industrial=steel`/`cement`/`factory`; `landuse=industrial`; WRI Global Power Plant Database (thermal) | 215 | Power, steel, cement and smelters are merged: captive power plants inside steel works and smelters make them inseparable by label |
-| mining | `landuse=quarry`, `resource=coal`, `industrial=mine`, `man_made=mineshaft` | 163 | Coal-seam fires (Jharia) are fires *in* mines, not mining activity. They are labelled mining, and the report says so |
-| recurrent_biomass (conditional) | WorldCover cropland (40) or tree cover (10) at the source, never season | — | Added only if Stage 2 finds ≥ ~30 registry sources on cropland or forest with no industrial label |
+| oil_gas | `industrial=refinery`, `industrial=oil`, `man_made=petroleum_well`, `man_made=flare` | 34 (census 27) | Thin, and the class NTRO cares most about: report its recall separately. If it is unusable, the map names the nearest OSM oil and gas facility — a display lookup, never a class |
+| heavy_industry | `power=plant` with `plant:source` coal/gas/oil/diesel/biomass; `man_made=works`; `industrial=steel`/`cement`/`factory`; `landuse=industrial`; WRI Global Power Plant Database (combustion plants) | 267 (census 215) | Power, steel, cement and smelters are merged: captive power plants inside steel works and smelters make them inseparable by label |
+| mining | `landuse=quarry`, `resource=coal`, `industrial=mine`, `man_made=mineshaft` | 165 (census 163) | Coal-seam fires (Jharia) are fires *in* mines, not mining activity. They are labelled mining, and the report says so |
+| recurrent_biomass (conditional) | WorldCover cropland (40) or tree cover (10) at the source, never season | **not added** | Needs ≥ 30 candidates *and* fewer than half of them on a GIHS-confirmed industrial site. Stage 4 found 42 candidates, but 81% sat on confirmed industry (92% of the tree-cover ones): mines and plants in forested or farmed country that OSM has not mapped. Recurrent biomass does not survive the gate |
 | — | FIRMS `type=2`, GIHS | — | Evaluation only, never labels |
 
 - **Dropped:** kiln (2 sources labelled, both wrong — one is a Raniganj coal fire).
   Flare and furnace are no longer separate classes.
-- **Not trained on:** the 70 sources with no OSM label (74% on GIHS sites, mostly
-  unmapped industry). They are predicted.
+- **Not trained on:** the 91 sources with no label (89 with no evidence, 2
+  kiln-first; 79% of the evidence-free ones on GIHS sites, mostly unmapped
+  industry). They are predicted.
+- **Contested:** 119 labelled sources have evidence for two classes within 1 km, usually
+  a refinery or a mine inside an industrial estate. Model 1 is right on 52% of them
+  against 70% of the uncontested ones.
 - **Road A, not Model 1:** forest and cropland fires at the detection level come from
   WorldCover and FSI alerts. FSI alerts are FIRMS points inside forest boundaries with
   partial state feedback: weak, not validated.
@@ -355,6 +371,19 @@ detections, plus 1,068,405 MODIS, from `reports/stage3_registry.md`:
 - One day-only source: a day-shift plant on a confirmed GIHS site.
 - **27.0%** of all detections are at night.
 
+**Model 1, real data** — 466 labelled sources, 5-fold GroupKFold on 2° blocks,
+fingerprint features only, fixed hyperparameters (`reports/stage4_model1.md`):
+
+- Accuracy **65.2%**, balanced accuracy **61.2%**, macro-F1 **0.62**.
+- References: majority class 57.3% (33.3% balanced); lat/lon only 40.8% balanced;
+  shuffled labels 33.3% balanced on average, none of 100 above 41.7% (p ≈ 0.01).
+- Oil and gas: recall **58.8%**, precision **64.5%**. That clears the 50% usability
+  bar, so it stays a class.
+- Mining vs heavy industry is the main confusion. Contested labels explain part of
+  it: 69.7% accuracy on uncontested sources, 52.1% on contested.
+- No VNF temperature, the strongest discriminator in the literature. The published
+  77% (Liu et al. 2018) had it.
+
 **Real data, three years** — VIIRS over India, 2021–2023, 3,906,061 detections, from
 `reports/stage1_5b_multiyear.md`:
 
@@ -420,3 +449,5 @@ is kept here so the history isn't lost.
 | 17 | Metres from `x = lon * 111320 * cos(lat)`, each point's own latitude | EPSG:7755 through `firewatch.grid.to_metres`, the one implementation | The per-point cosine shears the plane: at Jharia, a 500 m north–south pair measured 586 m. A Stage 1 test caught it on 2026-09-29, and every spike was rerun with the fix |
 | 18 | Observability from ERA5 cloud cover via Open-Meteo | NASA POWER daily cloud amount (CERES SYN1deg, 1°): one regional request per 10° tile-year, ~160 for India 2012–2024 | Open-Meteo's free tier counts each 14 days per location as a call: 13 years for a few hundred cells is ~135,000 calls against 10,000 a day. POWER is also satellite-observed rather than reanalysis; the price is 1° daily instead of 0.25° at the overpass |
 | 19 | Recurrence gate in ≥ 2 years (approved on 2021–2023) | ≥ 3 years on the full 2012–2024 archive; months and days unchanged | The rule fixed before the full-archive sweep: the two-year gate missed the 85% on-GIHS floor (79.5%, 679 sources); the best passing setting was ≥ 3 years (557 sources, 83.4% recall, 86.2% on GIHS). Two years out of thirteen is a looser test than two out of three |
+| 20 | recurrent_biomass added if ≥ ~30 unlabelled sources sit on cropland or forest | Also needs fewer than half the candidates on a GIHS-confirmed industrial site; GIHS decides only whether the class exists, never a label | Stage 4: 42 candidates, 81% on confirmed industry. The WorldCover rule was labelling unmapped mines and plants as biomass |
+| 21 | "A source takes the first group in table order" (heavy industry before mining) | Most specific first, in the census's order: oil_gas > steel_cement > thermal_power > mining > kiln (no label) > industrial_other | The approved counts were computed in that order; generic `landuse=industrial` around coalfields would otherwise relabel coal fires as heavy industry |

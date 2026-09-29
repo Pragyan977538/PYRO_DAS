@@ -10,6 +10,7 @@ Steps, in order; each skips what it has already loaded (see ingest_log):
   api            FIRMS API for what the archive lacks: needs FIRMS_MAP_KEY
   vnf            VIIRS Nightfire temperatures: optional, licence-gated
   gihs           GIHS reference sources, evaluation only (real data only)
+  gppd           WRI power plant database, India (real data only)
   osm            labelled OSM industry from the Geofabrik extract
   observability  daily cloud amount (NASA POWER), or the fixture's cloud table
 """
@@ -28,7 +29,7 @@ sys.path.insert(0, str(REPO))
 
 from firewatch.config import ConfigError, settings  # noqa: E402
 
-STEPS = ["archive", "api", "vnf", "gihs", "osm", "observability"]
+STEPS = ["archive", "api", "vnf", "gihs", "gppd", "osm", "observability"]
 
 
 def main() -> int:
@@ -74,6 +75,10 @@ def main() -> int:
     if "gihs" in steps and not cfg.mock_mode:
         from firewatch.ingest.gihs import load_gihs
         summary["gihs"] = load_gihs()
+
+    if "gppd" in steps and not cfg.mock_mode:
+        from firewatch.ingest.gppd import load_gppd
+        summary["gppd"] = load_gppd()
 
     if "osm" in steps:
         from firewatch.ingest.osm import load_osm

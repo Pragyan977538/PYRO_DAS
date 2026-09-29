@@ -39,7 +39,8 @@ differentiation and goes first. Stage 10's headline metric is not optional.
 | 1 | Done 2026-09-29 — `firewatch/ingest/fixture.py`, `make fixture`; 24 fixture tests pass |
 | 2 | **Done 2026-09-29.** Real archive loaded: 12.55M detections (2012–2024), 4.56M cloud cell-days, 47,970 OSM features, 916 GIHS objects; `check_ingest.py` passes |
 | 3 | **Done 2026-09-29.** 557 sources; every floor passes (`reports/stage3_registry.md`). Gate recalibrated to ≥ 3 years |
-| 4–10 | Not started |
+| 4 | **Done 2026-09-29.** Model 1 block-CV balanced accuracy 61.2% (location-only reference 40.8%); oil and gas usable; biomass class refused (`reports/stage4_model1.md`) |
+| 5–10 | Not started |
 
 ---
 
@@ -381,7 +382,9 @@ needed); confusion matrix, per-class precision/recall, feature importances; mode
 persistence; the leakage guard.
 
 **Produces:** `firewatch/models/labels.py`, `firewatch/models/source_clf.py`,
-`scripts/train.py`, `reports/model1_metrics.json`
+`firewatch/ingest/gppd.py` (WRI power plants), `sql/005_labels.sql` (`power_plants`,
+`source_labels`), `scripts/build_labels.py`, `scripts/train.py`,
+`reports/model1_metrics.json`, `tests/test_models.py`
 
 **Accept when:**
 ```bash
@@ -395,6 +398,48 @@ likely one), drop or merge it and say so in the report.
 
 **Blocked by:** Stage 3. **Effort:** one and a half days.
 **This stage decides the classifier's quality. Do not compress it.**
+
+**Fixed 2026-09-29, after labelling and before any training ran:**
+- **Label order** is the census's, most specific first:
+  oil_gas > steel_cement > thermal_power (OSM or WRI GPPD combustion plants) > mining >
+  kiln (no label) > industrial_other, within 1 km of any source cell.
+- **The biomass class needs a second condition:** fewer than half its candidates may
+  sit on a GIHS-confirmed industrial site. GIHS decides only whether the class exists
+  and never labels a source. It failed this condition: see Result.
+- **Features exclude absolute brightness temperatures** (`bt4_*`, `bt5_*`). They carry
+  the background's climate, which is a location proxy. The I4 − I5 contrast carries the
+  fire, so `bt45_*` stays.
+- **XGBoost hyperparameters are fixed, not tuned:** depth 3, 300 trees, learning rate
+  0.05, subsample 0.8, balanced class weights. No setting is chosen on cross-validation
+  scores.
+- **Evaluation** is 5-fold GroupKFold on 2° blocks.
+- **Oil and gas is "usable"** only if its block-CV recall and precision are both
+  ≥ 50%. Otherwise the map shows the nearest OSM oil and gas facility as a lookup.
+- **Two references are reported, and neither is ever a feature:**
+  - the majority class
+  - a location-only model on lat/lon, which shows how much of the score geography
+    alone would give
+
+**Result (2026-09-29):** accepted. `make labels && make train` runs, and the leakage
+guard passes and is tested to fail on any label input. The metrics are in
+`reports/model1_metrics.json`; the write-up is `reports/stage4_model1.md`.
+- **Labels** for the 557 sources:
+  - heavy industry 267 (industrial_other 183, thermal_power 77, steel_cement 7)
+  - mining 165
+  - oil and gas 34
+  - unlabelled 91 (2 of them kiln-first)
+- **Biomass class: not added.** There were 42 candidates, but 81% sat on
+  GIHS-confirmed industry (CLAUDE.md changed decision 20).
+- **Block CV:** accuracy **65.2%**, balanced accuracy **61.2%**, macro-F1 0.62.
+  - The location-only reference reaches 40.8% balanced.
+  - Shuffled labels average 33.3% balanced: none of 100 shuffles comes near
+    (p ≈ 0.01).
+- **Oil and gas** reaches recall 58.8% and precision 64.5%, so it is usable and stays
+  a class.
+- **Contested labels:** 119 sources have evidence for two classes. The model is right
+  on 52% of them, against 70% of uncontested sources.
+- **The four VNF features** are dropped because they are all-missing without the
+  licence. Adding VNF is the obvious next gain.
 
 ---
 

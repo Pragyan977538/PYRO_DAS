@@ -1,0 +1,368 @@
+{
+  "model": "XGBoost, multi:softprob",
+  "params": {
+    "n_estimators": 300,
+    "max_depth": 3,
+    "learning_rate": 0.05,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "min_child_weight": 2,
+    "reg_lambda": 1.0,
+    "tree_method": "hist",
+    "eval_metric": "mlogloss"
+  },
+  "features_used": [
+    "n_cells",
+    "width_km",
+    "years_active",
+    "det_per_year",
+    "persistence_night",
+    "persistence_day",
+    "night_share",
+    "frp_med",
+    "frp_mad",
+    "frp_p90",
+    "frp_p99",
+    "frp_robust_cv",
+    "frp_night_med",
+    "frp_day_med",
+    "month_entropy",
+    "peak_month_share",
+    "monsoon_share",
+    "bt45_night_med",
+    "bt45_day_med"
+  ],
+  "features_dropped": {
+    "temp_med": "missing for every source (VNF not loaded)",
+    "temp_p90": "missing for every source (VNF not loaded)",
+    "temp_cov": "constant",
+    "area_med": "missing for every source (VNF not loaded)"
+  },
+  "features_excluded": {
+    "n_det": "redundant with det_per_year, and grows with how long the archive is",
+    "bt4_night_med": "absolute brightness carries background climate: a location proxy",
+    "bt4_day_med": "absolute brightness carries background climate: a location proxy",
+    "bt5_night_med": "absolute brightness carries background climate: a location proxy"
+  },
+  "leakage_guard": {
+    "feats": [
+      "n_cells",
+      "width_km",
+      "years_active",
+      "det_per_year",
+      "persistence_night",
+      "persistence_day",
+      "night_share",
+      "frp_med",
+      "frp_mad",
+      "frp_p90",
+      "frp_p99",
+      "frp_robust_cv",
+      "frp_night_med",
+      "frp_day_med",
+      "month_entropy",
+      "peak_month_share",
+      "monsoon_share",
+      "bt45_night_med",
+      "bt45_day_med",
+      "temp_med",
+      "temp_p90",
+      "temp_cov",
+      "area_med"
+    ],
+    "label_inputs": {
+      "oil_gas": [
+        "cell_geom",
+        "osm_distance",
+        "osm_tags"
+      ],
+      "heavy_industry": [
+        "cell_geom",
+        "gppd_distance",
+        "gppd_fuel",
+        "osm_distance",
+        "osm_tags"
+      ],
+      "mining": [
+        "cell_geom",
+        "osm_distance",
+        "osm_tags"
+      ],
+      "recurrent_biomass": [
+        "cell_geom",
+        "landcover"
+      ]
+    },
+    "intersection": []
+  },
+  "labels": {
+    "per_class": {
+      "oil_gas": 34,
+      "heavy_industry": 267,
+      "mining": 165
+    },
+    "per_class_and_source": {
+      "heavy_industry <- industrial_other": 183,
+      "heavy_industry <- steel_cement": 7,
+      "heavy_industry <- thermal_power": 77,
+      "mining <- mining": 165,
+      "oil_gas <- oil_gas": 34
+    },
+    "unlabelled": 91
+  },
+  "evaluation": {
+    "scheme": "GroupKFold(5) on 2-degree blocks",
+    "blocks": 58,
+    "trained_on": 466
+  },
+  "block_cv": {
+    "accuracy": 0.6524,
+    "balanced_accuracy": 0.6124,
+    "macro_f1": 0.622,
+    "per_class": {
+      "oil_gas": {
+        "precision": 0.6452,
+        "recall": 0.5882,
+        "f1": 0.6154,
+        "support": 34
+      },
+      "heavy_industry": {
+        "precision": 0.6915,
+        "recall": 0.764,
+        "f1": 0.726,
+        "support": 267
+      },
+      "mining": {
+        "precision": 0.5714,
+        "recall": 0.4848,
+        "f1": 0.5246,
+        "support": 165
+      }
+    },
+    "confusion": {
+      "rows_true_cols_pred": [
+        "oil_gas",
+        "heavy_industry",
+        "mining"
+      ],
+      "matrix": [
+        [
+          20,
+          10,
+          4
+        ],
+        [
+          7,
+          204,
+          56
+        ],
+        [
+          4,
+          81,
+          80
+        ]
+      ]
+    }
+  },
+  "block_cv_uncontested": {
+    "accuracy": 0.6974,
+    "balanced_accuracy": 0.6317,
+    "macro_f1": 0.5824,
+    "per_class": {
+      "oil_gas": {
+        "precision": 0.3333,
+        "recall": 0.5714,
+        "f1": 0.4211,
+        "support": 7
+      },
+      "heavy_industry": {
+        "precision": 0.7991,
+        "recall": 0.7617,
+        "f1": 0.78,
+        "support": 235
+      },
+      "mining": {
+        "precision": 0.5315,
+        "recall": 0.5619,
+        "f1": 0.5463,
+        "support": 105
+      }
+    },
+    "confusion": {
+      "rows_true_cols_pred": [
+        "oil_gas",
+        "heavy_industry",
+        "mining"
+      ],
+      "matrix": [
+        [
+          4,
+          1,
+          2
+        ],
+        [
+          6,
+          179,
+          50
+        ],
+        [
+          2,
+          44,
+          59
+        ]
+      ]
+    }
+  },
+  "block_cv_contested": {
+    "sources": 119,
+    "accuracy": 0.521
+  },
+  "references": {
+    "majority_class": {
+      "class": "heavy_industry",
+      "accuracy": 0.573,
+      "balanced_accuracy": 0.3333
+    },
+    "location_only_lat_lon": {
+      "accuracy": 0.5558,
+      "balanced_accuracy": 0.4084,
+      "macro_f1": 0.4067
+    },
+    "permutation_test": {
+      "permutations": 100,
+      "metric": "balanced_accuracy",
+      "null_mean": 0.3334,
+      "null_max": 0.4167,
+      "observed": 0.6124,
+      "p_value": 0.0099
+    },
+    "published_benchmark": "77% (Liu et al. 2018, VNF industrial sub-types, global)"
+  },
+  "oil_gas": {
+    "recall": 0.5882,
+    "precision": 0.6452,
+    "usable_threshold": 0.5,
+    "usable": true,
+    "fallback": null
+  },
+  "importance_mean_abs_shap": {
+    "overall": {
+      "frp_night_med": 0.47369998693466187,
+      "frp_med": 0.4047999978065491,
+      "years_active": 0.30809998512268066,
+      "frp_day_med": 0.2502000033855438,
+      "bt45_day_med": 0.23350000381469727,
+      "frp_mad": 0.21389999985694885,
+      "persistence_night": 0.20819999277591705,
+      "width_km": 0.18880000710487366,
+      "frp_p99": 0.16459999978542328,
+      "night_share": 0.15760000050067902,
+      "month_entropy": 0.14319999516010284,
+      "bt45_night_med": 0.14090000092983246,
+      "frp_robust_cv": 0.120899997651577,
+      "persistence_day": 0.11550000309944153,
+      "peak_month_share": 0.10729999840259552,
+      "det_per_year": 0.10620000213384628,
+      "frp_p90": 0.10339999943971634,
+      "n_cells": 0.07930000126361847,
+      "monsoon_share": 0.06750000268220901
+    },
+    "oil_gas": {
+      "frp_night_med": 1.077299952507019,
+      "frp_med": 0.8496000170707703,
+      "frp_mad": 0.47380000352859497,
+      "years_active": 0.4657999873161316,
+      "frp_day_med": 0.46470001339912415,
+      "bt45_day_med": 0.4129999876022339,
+      "night_share": 0.27880001068115234,
+      "frp_p99": 0.24709999561309814,
+      "persistence_night": 0.22609999775886536,
+      "month_entropy": 0.2037999927997589,
+      "width_km": 0.19349999725818634,
+      "frp_robust_cv": 0.18299999833106995,
+      "persistence_day": 0.1582999974489212,
+      "det_per_year": 0.14110000431537628,
+      "monsoon_share": 0.1216999962925911,
+      "frp_p90": 0.10559999942779541,
+      "bt45_night_med": 0.08500000089406967,
+      "n_cells": 0.062300000339746475,
+      "peak_month_share": 0.033399999141693115
+    },
+    "heavy_industry": {
+      "persistence_night": 0.2946999967098236,
+      "frp_med": 0.19740000367164612,
+      "peak_month_share": 0.18320000171661377,
+      "bt45_night_med": 0.17149999737739563,
+      "frp_night_med": 0.16290000081062317,
+      "persistence_day": 0.14980000257492065,
+      "frp_p90": 0.14949999749660492,
+      "frp_p99": 0.13950000703334808,
+      "det_per_year": 0.13259999454021454,
+      "night_share": 0.11100000143051147,
+      "frp_mad": 0.10920000076293945,
+      "month_entropy": 0.10440000146627426,
+      "frp_day_med": 0.0966000035405159,
+      "bt45_day_med": 0.09359999746084213,
+      "frp_robust_cv": 0.08380000293254852,
+      "width_km": 0.07959999889135361,
+      "n_cells": 0.0689999982714653,
+      "years_active": 0.06509999930858612,
+      "monsoon_share": 0.053199999034404755
+    },
+    "mining": {
+      "years_active": 0.39329999685287476,
+      "width_km": 0.29319998621940613,
+      "bt45_day_med": 0.19370000064373016,
+      "frp_day_med": 0.1891999989748001,
+      "frp_night_med": 0.18080000579357147,
+      "frp_med": 0.16750000417232513,
+      "bt45_night_med": 0.1664000004529953,
+      "month_entropy": 0.12129999697208405,
+      "frp_p99": 0.1071000024676323,
+      "n_cells": 0.10670000314712524,
+      "peak_month_share": 0.10520000010728836,
+      "persistence_night": 0.10369999706745148,
+      "frp_robust_cv": 0.0957999974489212,
+      "night_share": 0.08299999684095383,
+      "frp_mad": 0.05889999866485596,
+      "frp_p90": 0.05510000139474869,
+      "det_per_year": 0.04500000178813934,
+      "persistence_day": 0.03830000013113022,
+      "monsoon_share": 0.02759999968111515
+    }
+  },
+  "importance_gain": {
+    "frp_mad": 4.807,
+    "frp_med": 2.884,
+    "frp_night_med": 2.7,
+    "night_share": 2.582,
+    "frp_p90": 2.296,
+    "frp_p99": 2.008,
+    "years_active": 1.962,
+    "width_km": 1.875,
+    "bt45_day_med": 1.695,
+    "frp_day_med": 1.38,
+    "n_cells": 1.311,
+    "bt45_night_med": 1.247,
+    "persistence_night": 1.226,
+    "det_per_year": 1.031,
+    "month_entropy": 1.017,
+    "persistence_day": 1.006,
+    "peak_month_share": 0.963,
+    "frp_robust_cv": 0.937,
+    "monsoon_share": 0.933
+  },
+  "predictions": {
+    "all_sources": {
+      "heavy_industry": 326,
+      "mining": 197,
+      "oil_gas": 34
+    },
+    "unlabelled_sources": {
+      "heavy_industry": 66,
+      "mining": 25
+    },
+    "median_confidence": 0.8653
+  },
+  "model_file": "C:\\Users\\pragyan\\dev\\firewatch\\data\\models\\model1.json"
+}
