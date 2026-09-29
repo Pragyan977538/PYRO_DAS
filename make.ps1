@@ -117,6 +117,7 @@ function Show-Help {
     Write-Host '  labels    stage 4: weak labels for every registry source'
     Write-Host '  train     stage 4: train Model 1 and write reports\model1_metrics.json'
     Write-Host '  inference stage 5: route the latest year through Roads A, B and C'
+    Write-Host '  events    stage 6: assemble the latest run into incidents'
     Write-Host '  spike     stage 1.5: cluster one real year of FIRMS (no database)'
     Write-Host '  down      stop containers (data kept)'
     Write-Host '  clean     stop containers AND delete the volume'
@@ -221,6 +222,11 @@ try {
             Assert-Venv
             Write-Step 'stage 5: router, Road A, Road C, promotion (replays the latest year)'
             Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\run_inference.py')
+        }
+        'events' {
+            Assert-Venv
+            Write-Step 'stage 6: event assembly (latest inference run)'
+            Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\build_events.py')
         }
         'spike' {
             Assert-Venv

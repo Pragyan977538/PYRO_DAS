@@ -41,7 +41,8 @@ differentiation and goes first. Stage 10's headline metric is not optional.
 | 3 | **Done 2026-09-29.** 557 sources; every floor passes (`reports/stage3_registry.md`). Gate recalibrated to ≥ 3 years |
 | 4 | **Done 2026-09-29.** Model 1 block-CV balanced accuracy 61.2% (location-only reference 40.8%); oil and gas usable; biomass class refused (`reports/stage4_model1.md`) |
 | 5 | **Done 2026-09-29, one target missed.** 2024 replayed: 1.20M detections routed and explained. Road C confirmed recall 88.2% (target > 90%) at 0.040% false positives; Baghjan never Road B (`reports/stage5_inference.md`) |
-| 6–10 | Not started |
+| 6 | **Done 2026-09-29.** 2024 assembled into 461,007 events (115 new-source incidents, 28 anomalies); Baghjan is exactly one event (`reports/stage6_events.md`) |
+| 7–10 | Not started |
 
 ---
 
@@ -566,7 +567,8 @@ about 10 minutes.
 lifecycle (active → dormant → closed) with the 72-hour re-ignition window. A provisional
 source's long-running incident stays one open event.
 
-**Produces:** `firewatch/inference/events.py`
+**Produces:** `firewatch/inference/events.py`, `sql/007_events.sql`,
+`scripts/build_events.py`, `scripts/check_dedup.py`, `tests/test_events.py`
 
 **Accept when:**
 ```bash
@@ -576,6 +578,43 @@ python scripts/check_dedup.py   # one real fire in the verified set => exactly o
 ```
 
 **Blocked by:** Stage 5. **Effort:** one day.
+
+**Fixed 2026-09-29, before any events were built:**
+- **Incidents only.** Road A fires and Road C alerts become events. Road B is a plant
+  operating normally, so it gets none.
+- **Anomaly at a registry source:** one event per source. An alert within 72 h of the
+  event's last alert extends it; a later one opens a new event.
+- **Provisional source:** one event for its whole life, whatever the gaps, until it is
+  retired (90 quiet days) or an analyst confirms it. The event includes the Road A
+  detections that caused the promotion: those within 500 m of its cells, since its
+  first fire. A blowout is one incident from its first detection, not from the day it
+  was promoted.
+- **Road A fires:**
+  - A UTC day's detections are clustered at 750 m (two VIIRS pixels).
+  - A cluster joins an open event if it lies within 750 m of any of that event's
+    detections from the last 72 h, and the joined event stays ≤ 10 km wide. Otherwise
+    it starts a new event.
+  - Day clusters wider than 10 km are split on a 10 km grid. Without the cap, 750 m
+    links over consecutive days would chain the paddy belt into one "event", the
+    registry's landscape problem again.
+- **Lifecycle, as of the run's end:**
+  - active: ≤ 24 h since the last detection
+  - dormant: 24–72 h. A new detection re-ignites the same event.
+  - closed: > 72 h
+  - Provisional-source events stay open until the source is retired.
+- **`check_dedup.py`** replays each verified event's window. It passes only if the fire's
+  detections (within the event's radius, between its published dates) all land in
+  exactly one event.
+
+**Result (2026-09-29):** accepted. Full write-up: `reports/stage6_events.md`.
+- `make events` assembles the 2024 replay into **461,007 events** in about 70 s:
+  460,864 fires, 115 new-source incidents and 28 anomalies.
+- All 1,049,887 Road A/C detections are linked to an event, and no Road B detection is.
+- **`check_dedup.py` passes:** Baghjan is exactly one `new_source` event, from its first
+  detection on 9 June 2020, holding all 645 of the fire's detections.
+- **The first attempt failed with three events,** and that led to a fix. Linking only
+  looked 72 h back, which contradicted "one event for its whole life". Fires near a live
+  provisional incident now link to it at any time.
 
 ---
 

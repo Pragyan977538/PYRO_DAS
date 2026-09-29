@@ -273,7 +273,7 @@ def replay():
     det = det[(det["acq_datetime"] >= REPLAY[0]) & (det["acq_datetime"] < REPLAY[1])]
     result = engine.run(det)
     merged = result.detections.merge(det[["detection_id", "latitude", "longitude",
-                                          "acq_datetime"]], on="detection_id")
+                                          "acq_datetime", "frp"]], on="detection_id")
     return fx, result, merged
 
 
@@ -316,6 +316,35 @@ def test_replay_raises_no_other_alerts_and_explains_road_a(replay):
     assert stats["road_a_without_reason"] == 0
     assert stats["alerts"] == {"confirmed": 1, "provisional": 1}
     assert (merged.loc[merged["road"] == ROAD_A, "reason"].str.len() > 0).all()
+
+
+def test_replay_events_one_per_incident(replay):
+    """Stage 6 on the replay: the blowout is one incident from its first fire, and
+    the furnace fire one confirmed anomaly."""
+    from firewatch.inference.events import assemble
+    from firewatch.registry.cells import add_metres
+
+    fx, result, merged = replay
+    det = add_metres(merged.copy())
+    det["source_id"] = pd.to_numeric(det["source_id"], errors="coerce")
+    det["road"] = det["road"].astype(int)
+    promotions = pd.DataFrame([{"source_id": p["source_id"], "first_seen": p["first_day"],
+                                "promoted_at": p["promoted_at"]} for p in result.promotions])
+    cells = pd.concat([p["cells"].assign(source_id=p["source_id"])
+                       for p in result.promotions], ignore_index=True)
+    events, assigned = assemble(det, {p["source_id"]: None for p in result.promotions},
+                                promotions, cells, REPLAY[1])
+    det = det.merge(assigned, on="detection_id", how="left")
+    blowout = _at(det, _event(fx, "E4"))
+    assert blowout["event"].nunique() == 1 and blowout["event"].notna().all()
+    ev = events.set_index("event").loc[int(blowout["event"].iat[0])]
+    assert ev["kind"] == "new_source"
+    assert ev["first_seen"].date() == blowout["acq_datetime"].min().date()
+    furnace = _at(det, _event(fx, "E1"))
+    fire = events.set_index("event").loc[furnace["event"].dropna().astype(int).unique()]
+    assert (fire["kind"] == "anomaly").sum() == 1
+    assert fire.loc[fire["kind"] == "anomaly", "alert"].tolist() == ["confirmed"]
+    assert not det.loc[det["road"] == ROAD_B, "event"].notna().any()
 
 
 # ----------------------------------------------------------------- database
