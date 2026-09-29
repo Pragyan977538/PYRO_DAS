@@ -34,6 +34,13 @@ Windows PowerShell (5.1 or 7):
 .\make.ps1 test
 ```
 
+Then the data (the same targets work with `make`):
+
+```powershell
+.\make.ps1 backfill   # FIRMS archive 2012-2024, OSM, GIHS, cloud cover (~1 GB download)
+.\make.ps1 registry   # persistent sources, fingerprints and baselines, then the checks
+```
+
 **No Docker?** `.\scripts\local_postgres.ps1 install` sets up a portable PostgreSQL 16
 + PostGIS under `%LOCALAPPDATA%\firewatch`. It needs no admin rights and no service,
 downloads ~450 MB, and uses the credentials in `.env`. After that, `.\make.ps1 db`
@@ -50,6 +57,7 @@ the synthetic test fixture.
 |---|---|
 | `CLAUDE.md` | Design decisions that must not be undone, and the log of those that changed. Read before changing anything. |
 | `docs/ROADMAP.md` | The build stages, each with an acceptance command. |
+| `reports/stage3_registry.md` | The registry on the full archive: 557 sources and how they were checked. |
 | `reports/stage1_5_spike.md` | Real-data clustering test: one year of FIRMS over India. |
 | `docs/plan.md` | Feasibility results from the synthetic benchmark (partly superseded). |
 | `docs/PS26162_Blueprint.md` | Full technical reference, data source URLs, field lists (partly superseded). |
@@ -57,5 +65,6 @@ the synthetic test fixture.
 
 ## Status
 
-Stage 0 done (acceptance passed on a real database). Stage 1 done.
-Stages 1.5 and 1.5b (real-data spikes) done and approved. Stage 2 in progress.
+Stages 0, 1, 1.5, 1.5b and 2 done. The real 2012–2024 archive is loaded (12.55M
+detections). Stage 3 done: the registry has 557 persistent sources and passes every
+acceptance floor. Stage 4 (weak labels and Model 1) is next.

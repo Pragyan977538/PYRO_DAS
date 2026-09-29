@@ -153,9 +153,9 @@ CREATE TABLE IF NOT EXISTS events (
 -- is the denominator for persistence (nights detected / nights observable).
 --
 -- FIRMS publishes detections only -- no swath footprints, no cloud masks -- so
--- this comes from ERA5 cloud cover at the overpass time, via Open-Meteo, per
--- 0.25 degree ERA5 grid cell. Expected clear nights = sum(1 - cloud_frac). It
--- is a reanalysis proxy, not a satellite measurement. Written for every
+-- this comes from a cloud-cover source per grid cell: NASA POWER's daily cloud
+-- amount on a 1-degree grid (see 003_ingest.sql), or the fixture's table.
+-- Expected clear nights = sum(1 - cloud_frac). A proxy, not the sky at the pass. Written for every
 -- cell-date whether or not anything burned. obs_date is the UTC date, the
 -- same convention as detections.acq_datetime.
 -- ===========================================================================

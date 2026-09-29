@@ -166,17 +166,21 @@ The gated method keeps 477 sources and misroutes 0.01% of the belt. Instead:
 2. **Snap to ~375 m cells** (the VIIRS pixel) and aggregate: detections, distinct days,
    nights, months and years.
 3. **Gate on recurrence:** keep cells that burn across multiple years *and* across much of
-   the year. Within a year, **≥ 3 distinct months on ≥ 10 distinct days, in at least 2
-   years**. One year proposed ≥ 4 months. A rule fixed before the three-year sweep —
-   keep the proposal unless the best two-year setting beats it by more than one F1
-   point — moved it to 3 (81.6% vs 80.4%). On 2021–2023 that gives:
-   - 477 sources, with 0.01% of the paddy belt misrouted
-   - 78% of active GIHS sites recovered, and 86% of sources on a GIHS site
-   - Reliance, Nayara and HMEL all found
+   the year. Within a year, **≥ 3 distinct months on ≥ 10 distinct days, in at least 3
+   years** of the 2012–2024 archive (`REGISTRY_GATE=3,10,3`). How it got there, each
+   step by a rule fixed before its sweep ran:
+   - One year proposed ≥ 4 months.
+   - Three years (2021–2023) moved it to 3 months in ≥ 2 years (F1 81.6% vs 80.4%):
+     477 sources, 78% GIHS recall, 86% on GIHS.
+   - The full archive moved it to ≥ 3 years. Over 13 years, two qualifying years is a
+     looser test than two of three: the two-year gate registered 679 sources with only
+     79.5% on a GIHS site, below the 85% floor. Three years gives 557 sources, 83.4%
+     GIHS recall, 86.2% on GIHS, 0.014% of the paddy belt misrouted, and Reliance,
+     Nayara and HMEL all found (`reports/stage3/sweep.md`).
 
-   Requiring all 3 of 3 years is too strict, because flares are intermittent. The
-   two-year rule keeps a single long accident (Baghjan) out by construction. Thresholds
-   live in config; Stage 3 recalibrates on the full archive.
+   A multi-year rule keeps a single long accident (Baghjan) out by construction.
+   Thresholds live in config (`REGISTRY_GATE`); rerun the sweep
+   (`scripts/build_registry.py --sweep`) when the archive grows by years.
 4. **Cluster the surviving cells** with
    `DBSCAN(eps=500, min_samples=5, algorithm="ball_tree", ...)` fitted with
    `sample_weight=n_detections`.
@@ -233,10 +237,10 @@ so persistence = **nights with a detection / nights the site was observable** �
 and denominator both nights.
 
 FIRMS publishes detections only: no swath footprints, no cloud masks. Observability
-therefore comes from **ERA5 cloud cover at the overpass time, via Open-Meteo** (free, no
-key): expected clear nights = Σ(1 − cloud fraction). It is a reanalysis proxy, not a
-satellite measurement — say so. Write observability for every cell-date whether or not
-anything burned.
+therefore comes from **NASA POWER's daily cloud amount (CERES SYN1deg)**: free, no key,
+satellite-observed cloud on a 1° grid. Expected clear nights = Σ(1 − daily cloud
+fraction). It is a daily mean at 1°, not the sky at the overpass — say so. Store every
+cell-date whether or not anything burned (`firewatch/ingest/observability.py`).
 
 ### MODIS and VIIRS use different column names
 
@@ -276,7 +280,8 @@ highest-consequence assets score zero. Seed the table from PESO, CEA and MoPNG l
 | OSM | Geofabrik India extract | Weak labels, Road A context |
 | WorldCover | 10 m land cover COGs | Forest/cropland labels, Road A context |
 | FSI fire alerts | fsiforestfire.gov.in | Weak forest labels |
-| Open-Meteo | Free, no key | ERA5 cloud cover (observability), wind (risk) |
+| NASA POWER | Free, no key | Daily cloud amount, CERES SYN1deg 1° (observability) |
+| Open-Meteo | Free, no key | Wind (risk) |
 
 `MOCK_MODE=0` (the default) runs against real data. `MOCK_MODE=1` switches to the synthetic
 **test fixture**, which is offline and deterministic, for tests and CI. Anomaly detection is
@@ -321,6 +326,8 @@ government agency.
 
 - `docs/ROADMAP.md` — the build stages with acceptance criteria. **Read the relevant
   stage before starting work.**
+- `reports/stage3_registry.md` — the registry on the full archive: 557 sources, every
+  acceptance floor, and the sweep that moved the gate to three years.
 - `reports/stage1_5b_multiyear.md` — the gate on three real years, the demo refineries,
   and the label census behind the proposed classes.
 - `reports/stage1_5_spike.md` — the one-year clustering test: memory and the first
@@ -333,6 +340,20 @@ government agency.
   biomass fires as point sources, so its numbers are upper bounds.
 
 ## Measured numbers
+
+**Real data, full archive: the registry.** VIIRS over India, 2012–2024, 11,485,898
+detections, plus 1,068,405 MODIS, from `reports/stage3_registry.md`:
+
+- Gate ≥ 3 months, ≥ 10 days, ≥ 3 years: **557** sources from 2,745 cells, the
+  widest 8.0 km.
+  - GIHS recall **83.4%**, with **86.2%** of sources on a GIHS site.
+  - Paddy belt **0.014%** misrouted; FIRMS-static coverage **99.3%**.
+  - Reliance 0.72 km, Nayara 0.25 km, HMEL 2.1 km.
+- 12.5% of VIIRS detections land on a source; the rest go to Road A.
+- Night persistence: median 0.23, and 0.94–0.96 at the big coal, steel and
+  refinery complexes.
+- One day-only source: a day-shift plant on a confirmed GIHS site.
+- **27.0%** of all detections are at night.
 
 **Real data, three years** — VIIRS over India, 2021–2023, 3,906,061 detections, from
 `reports/stage1_5b_multiyear.md`:
@@ -397,3 +418,5 @@ is kept here so the history isn't lost.
 | 15 | Online basemap | Offline basemap (PMTiles India extract) | Venue internet at the finale is unreliable |
 | 16 | FIRMS `type`, `version` and product not stored | Stored as `firms_type`, `version`, `product`; SP supersedes NRT | Needed for evaluation, and to stop double counting |
 | 17 | Metres from `x = lon * 111320 * cos(lat)`, each point's own latitude | EPSG:7755 through `firewatch.grid.to_metres`, the one implementation | The per-point cosine shears the plane: at Jharia, a 500 m north–south pair measured 586 m. A Stage 1 test caught it on 2026-09-29, and every spike was rerun with the fix |
+| 18 | Observability from ERA5 cloud cover via Open-Meteo | NASA POWER daily cloud amount (CERES SYN1deg, 1°): one regional request per 10° tile-year, ~160 for India 2012–2024 | Open-Meteo's free tier counts each 14 days per location as a call: 13 years for a few hundred cells is ~135,000 calls against 10,000 a day. POWER is also satellite-observed rather than reanalysis; the price is 1° daily instead of 0.25° at the overpass |
+| 19 | Recurrence gate in ≥ 2 years (approved on 2021–2023) | ≥ 3 years on the full 2012–2024 archive; months and days unchanged | The rule fixed before the full-archive sweep: the two-year gate missed the 85% on-GIHS floor (79.5%, 679 sources); the best passing setting was ≥ 3 years (557 sources, 83.4% recall, 86.2% on GIHS). Two years out of thirteen is a looser test than two out of three |

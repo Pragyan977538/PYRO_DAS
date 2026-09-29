@@ -12,7 +12,7 @@ PY := .venv/bin/python
 BOOTSTRAP ?= python3.13
 endif
 
-.PHONY: help install db migrate psql test lint fixture backfill spike down clean logs
+.PHONY: help install db migrate psql test lint fixture backfill registry spike down clean logs
 
 help:
 	@echo "FireWatch - build tasks (Windows: .\\make.ps1 <target>)"
@@ -24,6 +24,7 @@ help:
 	@echo "  make lint      ruff check"
 	@echo "  make fixture   stage 1: write the synthetic test fixture to data/mock"
 	@echo "  make backfill  stage 2: load everything into the database, then check it"
+	@echo "  make registry  stage 3: build the source registry, then check it"
 	@echo "  make spike     stage 1.5: cluster one real year of FIRMS (no database)"
 	@echo "  make down      stop containers (data kept)"
 	@echo "  make clean     stop containers AND delete the volume"
@@ -67,6 +68,11 @@ backfill:
 	@echo ">> stage 2: backfill (MOCK_MODE decides real vs fixture)"
 	$(PY) scripts/backfill.py
 	$(PY) scripts/check_ingest.py
+
+registry:
+	@echo ">> stage 3: registry (gate, cluster, fingerprints, baselines)"
+	$(PY) scripts/build_registry.py
+	$(PY) scripts/check_registry.py
 
 spike:
 	@echo ">> stage 1.5: one real year of FIRMS, clustered three ways"

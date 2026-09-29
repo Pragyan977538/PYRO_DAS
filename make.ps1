@@ -113,6 +113,7 @@ function Show-Help {
     Write-Host '  lint      ruff check'
     Write-Host '  fixture   stage 1: write the synthetic test fixture to data\mock'
     Write-Host '  backfill  stage 2: load everything into the database, then check it'
+    Write-Host '  registry  stage 3: build the source registry, then check it'
     Write-Host '  spike     stage 1.5: cluster one real year of FIRMS (no database)'
     Write-Host '  down      stop containers (data kept)'
     Write-Host '  clean     stop containers AND delete the volume'
@@ -196,6 +197,12 @@ try {
             Write-Step 'stage 2: backfill (MOCK_MODE decides real vs fixture)'
             Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\backfill.py')
             Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\check_ingest.py')
+        }
+        'registry' {
+            Assert-Venv
+            Write-Step 'stage 3: registry (gate, cluster, fingerprints, baselines)'
+            Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\build_registry.py')
+            Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\check_registry.py')
         }
         'spike' {
             Assert-Venv

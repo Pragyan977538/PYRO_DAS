@@ -60,6 +60,18 @@ def _parse_bbox(raw: str) -> tuple[float, float, float, float]:
     return west, south, east, north
 
 
+def _parse_gate(raw: str) -> tuple[int, int, int]:
+    """Parse ``months,days,years`` for the registry's recurrence gate."""
+    parts = [p.strip() for p in raw.split(",")]
+    try:
+        months, days, years = (int(p) for p in parts)
+    except ValueError as exc:
+        raise ConfigError(f"REGISTRY_GATE must be 'months,days,years', got {raw!r}") from exc
+    if not (1 <= months <= 12 and 1 <= days <= 366 and years >= 1):
+        raise ConfigError(f"REGISTRY_GATE is out of range: {raw!r}")
+    return months, days, years
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     database_url: str
@@ -70,6 +82,11 @@ class Settings:
     india_bbox: tuple[float, float, float, float]
     data_dir: Path
     log_level: str
+    # Recurrence gate (months, days, years): a cell must burn in >= months distinct
+    # months on >= days distinct days within a year, in >= years years. Two years
+    # was approved on 2021-2023; the full-archive recalibration (Stage 3, rule
+    # fixed before the sweep) moved it to three: reports/stage3/sweep.md.
+    registry_gate: tuple[int, int, int] = (3, 10, 3)
     repo_root: Path = field(default=_REPO_ROOT)
 
     @property
@@ -151,6 +168,7 @@ def load_settings() -> Settings:
         india_bbox=_parse_bbox(_env("INDIA_BBOX", "68,6,98,37") or "68,6,98,37"),
         data_dir=data_dir,
         log_level=log_level,
+        registry_gate=_parse_gate(_env("REGISTRY_GATE", "3,10,3") or "3,10,3"),
     )
 
 

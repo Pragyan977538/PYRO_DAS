@@ -37,8 +37,9 @@ differentiation and goes first. Stage 10's headline metric is not optional.
 | 1.5 | Done 2026-09-29 — `reports/stage1_5_spike.md` (one year) |
 | 1.5b | Done and approved 2026-09-29 — `reports/stage1_5b_multiyear.md`. Gate and three-class set approved |
 | 1 | Done 2026-09-29 — `firewatch/ingest/fixture.py`, `make fixture`; 24 fixture tests pass |
-| 2 | In progress 2026-09-29 |
-| 3–10 | Not started |
+| 2 | **Done 2026-09-29.** Real archive loaded: 12.55M detections (2012–2024), 4.56M cloud cell-days, 47,970 OSM features, 916 GIHS objects; `check_ingest.py` passes |
+| 3 | **Done 2026-09-29.** 557 sources; every floor passes (`reports/stage3_registry.md`). Gate recalibrated to ≥ 3 years |
+| 4–10 | Not started |
 
 ---
 
@@ -57,7 +58,7 @@ firewatch/
 ├── firewatch/
 │   ├── config.py               # env-driven; MOCK_MODE (fixture) flag lives here
 │   ├── db.py                   # connection pool, upsert helpers
-│   ├── grid.py                 # EPSG:7755 metres, 375 m cells, ERA5 cells: one implementation
+│   ├── grid.py                 # EPSG:7755 metres, 375 m cells, cloud-grid cells: one implementation
 │   ├── ingest/
 │   │   ├── normalize.py        # column normalisation, SP/NRT dedupe
 │   │   ├── fixture.py          # synthetic test fixture + spike injector
@@ -68,7 +69,7 @@ firewatch/
 │   │   ├── landcover.py        # WorldCover sampling
 │   │   ├── fsi.py
 │   │   ├── gihs.py             # evaluation reference
-│   │   └── observability.py    # ERA5 cloud cover via Open-Meteo
+│   │   └── observability.py    # daily cloud amount via NASA POWER
 │   ├── registry/
 │   │   ├── cells.py            # 375 m grid + recurrence gate
 │   │   ├── cluster.py
@@ -228,14 +229,20 @@ sources* each OSM label group can label.
 - OSM via Geofabrik + pyosmium, using the tags in the `CLAUDE.md` label table →
   `osm_industrial`.
 - WorldCover sampling at points (cloud-optimised GeoTIFFs, windowed reads).
-- FSI loader (weak forest labels). GIHS loader (evaluation reference only).
-- Observability: ERA5 cloud cover at overpass times via Open-Meteo → `observability`.
+- GIHS loader (evaluation reference only).
+- FSI loader: **deferred.** The FSI portal's point search is an interactive form, and no
+  bulk export has been found or verified. Forest labels come from WorldCover tree cover
+  until a teammate obtains FSI CSV/KML exports; the `fsi_alerts` table is ready.
+- Observability: NASA POWER daily cloud amount (CERES SYN1deg, 1°) → `observability`.
+  (Open-Meteo's ERA5 was the first plan; its free quota can't cover the archive.)
 
-**Produces:** everything under `firewatch/ingest/`, `scripts/backfill.py`
+**Produces:** everything under `firewatch/ingest/`, `sql/003_ingest.sql`,
+`scripts/backfill.py`, `scripts/check_ingest.py` (the checks below, as one script),
+`tests/test_ingest.py` (on a throwaway `firewatch_test` database)
 
 **Accept when:**
 ```bash
-make backfill
+make backfill                                   # runs check_ingest.py at the end
 psql -c "SELECT instrument, product, count(*), min(acq_datetime), max(acq_datetime)
          FROM detections GROUP BY 1, 2;"
 psql -c "SELECT count(*) FROM detections n WHERE n.product = 'NRT' AND EXISTS (
@@ -248,6 +255,27 @@ If VNF is loaded, record its real coverage. It will be far below the old mock's 
 
 **Blocked by:** Stages 0 and 1. **Effort:** two days.
 
+**Result (2026-09-29):** accepted on the real archive; `check_ingest.py` passes.
+- **Detections:** 12,554,303.
+  - VIIRS SP 11,485,898: S-NPP 2012-01-20 to 2024, NOAA-20 2018 to 2024.
+  - MODIS SP 1,068,405: 2012 to 2024.
+  - No NRT yet: the API needs `FIRMS_MAP_KEY`.
+- **NRT rows on SP-covered days:** 0.
+- **Day/night:** 9,158,962 day and 3,395,341 night; **27.0% at night** (29.0% in 2023
+  alone).
+- **VNF:** not loaded (no licence), so 0% coverage. The pipeline runs without it.
+- **Observability:** 4,559,040 NASA POWER cell-days (1°, 2012–2024, 156 tile-years).
+  POWER refuses boxes under 2° a side, so the 36–37° N strip is fetched as 36–38° N.
+- **OSM** (Geofabrik 2026-09-28): 47,970 labelled features.
+  - industrial_other 29,721
+  - mining 12,004
+  - kiln 5,696
+  - thermal_power 376
+  - oil_gas 134
+  - steel_cement 39
+- **GIHS:** 916 India objects, 812 confirmed.
+- **Database timezone:** UTC.
+
 ---
 
 ## Stage 3 — Registry
@@ -256,6 +284,7 @@ If VNF is loaded, record its real coverage. It will be far below the old mock's 
 - 375 m cells.
 - The recurrence gate: within a year, ≥ 3 distinct months on ≥ 10 distinct days, in
   at least 2 years (Stage 1.5b), recalibrated here against GIHS on the full archive.
+  The recalibration moved it to **≥ 3 years** (see Result).
 - DBSCAN on gated cells (`eps=500` m, `min_samples=5` by weight, `sample_weight`).
 - A 20 km footprint cap, as a backstop only: the widest gated source in 2023 was
   5.8 km.
@@ -265,8 +294,24 @@ If VNF is loaded, record its real coverage. It will be far below the old mock's 
 
 Porting the Stage 1.5 spike code (`cell_table`, `grid_cluster`) is the starting point.
 
-**Produces:** `firewatch/registry/`, `scripts/build_registry.py`,
-`scripts/check_registry.py`
+**Recalibration rule, fixed 2026-09-29 before the full-archive sweep ran.**
+- Score years ∈ {2, 3, 4} × months ∈ {3, 4} × days ∈ {10, 20} on all of 2012–2024
+  (`scripts/build_registry.py --sweep`).
+- Keep the approved gate (≥ 3 months, ≥ 10 days, ≥ 2 years) if it meets every floor
+  below.
+- Otherwise take the setting that meets every floor with the best F1 of GIHS recall
+  and on-GIHS share.
+- If no setting meets them all, keep the approved gate and report which floor fails.
+
+**Assignment radius.** A VIIRS detection belongs to a source when it lies within
+500 m of one of the source's cells: the router's question. A MODIS detection gets
+1 km, because MODIS pixels are 1 km at nadir and larger off-nadir. MODIS feeds only
+the MODIS baselines; the gate, the clusters and the fingerprints are VIIRS-only.
+
+**Produces:** `firewatch/registry/` (`cells`, `cluster`, `fingerprint`, `baseline`,
+`evaluate`, `build`), `sql/004_registry.sql` (`source_cells`, `registry_runs`),
+`scripts/build_registry.py` (`--sweep` for recalibration), `scripts/check_registry.py`,
+`tests/test_registry.py`, `reports/stage3/`
 
 **Accept when:**
 ```bash
@@ -285,12 +330,34 @@ if the full archive allows:
 - **Reliance Jamnagar, Nayara Vadinar and HMEL Bathinda** each have a source within 3 km
   of their published coordinates
 - no source footprint wider than the cap
-- persistence in (0, 1], computed nights over nights
+- persistence in [0, 1], computed nights over nights (and days over days), and
+  positive at night or by day for every source. The first wording was (0, 1] at
+  night; the full archive has one day-shift plant that is never seen at night (see
+  Result)
 - every source has a non-empty `baselines` JSONB
 
 It also reports how many co-located sources merge.
 
 **Blocked by:** Stage 2, **and the user's review of Stage 1.5b**. **Effort:** two days.
+
+**Result (2026-09-29):** accepted; `check_registry.py` passes. Full report:
+`reports/stage3_registry.md`.
+- **557 sources** from 2,745 cells. The build takes 99 s, and every source has a
+  baseline.
+- The widest source is 8.0 km; nothing was capped.
+- GIHS recall is **83.4%**, and **86.2%** of sources sit on a GIHS site.
+- **0.014%** of the paddy belt lands on a source; FIRMS `type=2` coverage is
+  **99.3%**.
+- Reliance is found at 0.72 km, Nayara at 0.25 km and HMEL at 2.1 km.
+- **The gate moved to ≥ 3 years,** by the rule above: on 13 years the two-year gate
+  had only 79.5% of its sources on GIHS (`reports/stage3/sweep.md`; CLAUDE.md
+  changed decision 19).
+- 185 sources each merge two or more GIHS objects (469 objects in all): GIHS draws a
+  plant as several objects.
+- One source is day-only: Bajaj Auto, Waluj, on a confirmed GIHS site, which is why
+  the persistence check was reworded.
+- Tests: 134 passed, 1 skipped by design (the hypertable test; TimescaleDB is not in
+  the portable build).
 
 ---
 

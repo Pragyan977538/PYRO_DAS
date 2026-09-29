@@ -7,8 +7,9 @@ point falls in.
 Metres come from EPSG:7755 (WGS 84 / India NSF LCC): conformal, so a local
 distance is right in every direction, up to a smooth scale factor that stays
 within ~2% anywhere in India. The registry grid is 375 m -- one VIIRS pixel -- in that plane.
-The observability grid is ERA5's native 0.25 degrees, because that is the
-resolution the cloud-cover proxy actually has; a finer grid would only repeat it.
+Observability grids are regular lat/lon grids at the cloud source's own
+resolution (NASA POWER's 1 degree; the fixture's ERA5-shaped 0.25 degree): a finer
+grid would only repeat the same value.
 
 Why not the equirectangular shortcut ``x = lon * 111320 * cos(lat)``: with each
 point's own latitude in the cosine it shears the plane. At India's longitudes two
@@ -45,6 +46,12 @@ def to_metres(lat, lon) -> tuple[np.ndarray, np.ndarray]:
     return np.asarray(x), np.asarray(y)
 
 
+def from_metres(x, y) -> tuple[np.ndarray, np.ndarray]:
+    """Back from EPSG:7755 metres: (latitude, longitude)."""
+    lon, lat = _inverse().transform(np.asarray(x, dtype=float), np.asarray(y, dtype=float))
+    return np.asarray(lat), np.asarray(lon)
+
+
 def offset(lat, lon, dx_m, dy_m) -> tuple[np.ndarray, np.ndarray]:
     """Move points east by ``dx_m`` and north by ``dy_m`` metres, in the same plane
     ``to_metres`` measures in, so a move and a measurement always agree."""
@@ -60,9 +67,19 @@ def cell_375(lat, lon) -> np.ndarray:
     EPSG:7755 coordinates over India are positive and below ten million metres, so
     packing the northing cell into the last five digits keeps keys unique.
     """
-    x, y = to_metres(lat, lon)
-    return (np.floor(x / CELL_M).astype(np.int64) * 100_000
-            + np.floor(y / CELL_M).astype(np.int64))
+    return cell_key(*to_metres(lat, lon))
+
+
+def cell_key(x, y) -> np.ndarray:
+    """Registry cell key from coordinates already in EPSG:7755 metres."""
+    return (np.floor(np.asarray(x) / CELL_M).astype(np.int64) * 100_000
+            + np.floor(np.asarray(y) / CELL_M).astype(np.int64))
+
+
+def cell_bounds(key) -> tuple[np.ndarray, np.ndarray]:
+    """South-west corner, in metres, of registry cells."""
+    col, row = np.divmod(np.asarray(key, dtype=np.int64), 100_000)
+    return col * CELL_M, row * CELL_M
 
 
 def grid_cell(lat, lon, deg: float) -> np.ndarray:

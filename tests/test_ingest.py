@@ -19,67 +19,21 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from conftest import fresh_database, postgres_reachable
 
 from firewatch import config, db
-from firewatch.ingest.fixture import generate
 
 REPO = Path(__file__).resolve().parent.parent
 TEST_DB = "firewatch_test"
 
 
-def _admin_connect(url):
-    import psycopg2
-    return psycopg2.connect(dbname="postgres", user=url.username, password=url.password,
-                            host=url.host, port=url.port or 5432)
-
-
-def _reachable() -> bool:
-    try:
-        from sqlalchemy.engine import make_url
-        url = make_url(config.load_settings().database_url)
-        _admin_connect(url).close()
-        return True
-    except Exception:
-        return False
-
-
-pytestmark = pytest.mark.skipif(not _reachable(), reason="no PostgreSQL reachable")
+pytestmark = pytest.mark.skipif(not postgres_reachable(), reason="no PostgreSQL reachable")
 
 
 @pytest.fixture(scope="module")
 def ingest_db(tmp_path_factory):
     """A fresh migrated database, mock mode, and the fixture on disk."""
-    from sqlalchemy.engine import make_url
-
-    base = make_url(config.load_settings().database_url)
-    admin = _admin_connect(base)
-    admin.autocommit = True
-    with admin.cursor() as cur:
-        cur.execute(f"DROP DATABASE IF EXISTS {TEST_DB} WITH (FORCE)")
-        cur.execute(f"CREATE DATABASE {TEST_DB}")
-
-    data_dir = tmp_path_factory.mktemp("data")
-    generate().write(data_dir / "mock")
-    mp = pytest.MonkeyPatch()
-    mp.setenv("DATABASE_URL", base.set(database=TEST_DB).render_as_string(hide_password=False))
-    mp.setenv("MOCK_MODE", "1")
-    mp.setenv("DATA_DIR", str(data_dir))
-    config._cached = None
-    db._engine = None
-    try:
-        for _ in range(2):   # twice: every migration must be safe to re-run
-            for path in sorted((REPO / "sql").glob("[0-9][0-9][0-9]_*.sql")):
-                db.run_sql_file(path)
-        yield data_dir
-    finally:
-        if db._engine is not None:
-            db._engine.dispose()
-        db._engine = None
-        config._cached = None
-        mp.undo()
-        with admin.cursor() as cur:
-            cur.execute(f"DROP DATABASE IF EXISTS {TEST_DB} WITH (FORCE)")
-        admin.close()
+    yield from fresh_database(TEST_DB, tmp_path_factory)
 
 
 def q(sql: str, **params) -> list[dict]:
@@ -302,6 +256,21 @@ def test_power_tile_parsing():
     assert frame["cloud_frac"].tolist() == [pytest.approx(0.142), 1.0]   # clipped to 1
     assert (frame["cell_id"] == int(grid_cell(20.5, 70.5, 1.0))).all()
     assert set(frame["daynight"]) == {"A"} and set(frame["source"]) == {POWER_SOURCE}
+
+
+def test_power_tiles_cover_india_within_service_limits():
+    """POWER refuses a regional box under 2 degrees a side (HTTP 422), which
+    stopped the first real backfill at the 36-37 N strip."""
+    from firewatch.config import settings
+    from firewatch.ingest.observability import TILES
+
+    for la0, la1, lo0, lo1 in TILES:
+        assert 2 <= la1 - la0 <= 10 and 2 <= lo1 - lo0 <= 10, (la0, la1, lo0, lo1)
+    w, s, e, n = settings().india_bbox
+    covered = lambda lat, lon: any(la0 <= lat < la1 and lo0 <= lon < lo1  # noqa: E731
+                                   for la0, la1, lo0, lo1 in TILES)
+    assert all(covered(lat + 0.5, lon + 0.5)
+               for lat in range(int(s), int(n)) for lon in range(int(w), int(e)))
 
 
 def test_landcover_live_sample():

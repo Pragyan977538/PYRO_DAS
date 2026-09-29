@@ -33,10 +33,11 @@ POWER_URL = "https://power.larc.nasa.gov/api/temporal/daily/regional"
 POWER_SOURCE = "power_syn1deg"   # 1-degree cells
 POWER_DEG = 1.0
 FIXTURE_SOURCE = "fixture"       # 0.25-degree ERA5-shaped cells
-# India's box in POWER-sized pieces (lat0, lat1, lon0, lon1). Regional requests
-# take one parameter; 10 x 10 degrees is what the service accepts.
-TILES = [(la, min(la + 10, 37), lo, lo + 10)
-         for la in (6, 16, 26, 36) for lo in (68, 78, 88)]
+# India's box in POWER-sized pieces (lat0, lat1, lon0, lon1). A regional request
+# takes one parameter and a box 2 to 10 degrees on a side; the service answers 422
+# to anything narrower, so the northern strip (36-37 N) is fetched as 36-38 N.
+TILES = [(la, la + span, lo, lo + 10)
+         for la, span in ((6, 10), (16, 10), (26, 10), (36, 2)) for lo in (68, 78, 88)]
 COLUMNS = ["cell_id", "obs_date", "daynight", "cloud_frac", "source"]
 CONFLICT = "(cell_id, obs_date, daynight) DO UPDATE SET cloud_frac = EXCLUDED.cloud_frac, " \
            "source = EXCLUDED.source"
