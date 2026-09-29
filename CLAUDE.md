@@ -303,12 +303,21 @@ two mirrors). Download the India extract (~1.7 GB) and filter it locally with py
 (`pip install osmium`), so Windows needs no native tools. Reproducible, faster, and it
 cannot be down during a demo.
 
-### The critical asset register is static and manual
+### The critical asset register is static
 
 Nuclear plants dump waste heat into cooling water at 30–40 °C — far below satellite
 detection. They are thermally invisible until something burns. Same for ammunition depots
 and LPG bottling plants. If criticality is derived from thermal history, the
-highest-consequence assets score zero. Seed the table from PESO, CEA and MoPNG listings.
+highest-consequence assets score zero.
+
+- **Source.** For the prototype the register is **generated from maps**, never from
+  fires (`firewatch/risk/assets.py`, approved 2026-09-29):
+  - WRI's power plant list, including India's 9 nuclear plants at criticality 1.0
+  - OSM refineries, LNG/LPG, chemical and fertiliser works, steel and cement, mines,
+    kilns and industrial estates, typed from their tags
+- **Size.** 48,107 entries in all.
+- **Manual rows.** Rows added by hand (`source_ref` `manual:…`) survive reseeding, so
+  PESO, CEA and MoPNG lists can be layered on. Heritage sites are left out.
 
 ## Data: real first
 
@@ -322,7 +331,8 @@ highest-consequence assets score zero. Seed the table from PESO, CEA and MoPNG l
 | WorldCover | 10 m land cover COGs | Forest/cropland labels, Road A context |
 | FSI fire alerts | fsiforestfire.gov.in | Weak forest labels |
 | NASA POWER | Free, no key | Daily cloud amount, CERES SYN1deg 1° (observability) |
-| Open-Meteo | Free, no key | Wind (risk) |
+| NASA POWER wind | Free, no key | Daily U/V wind at 10 m, MERRA-2 grid (risk: the downwind exposure term) |
+| WorldPop 2020, 1 km | Free, CC BY 4.0, one 19 MB file | Population (risk exposure) |
 
 `MOCK_MODE=0` (the default) runs against real data. `MOCK_MODE=1` switches to the synthetic
 **test fixture**, which is offline and deterministic, for tests and CI. Anomaly detection is
@@ -480,3 +490,6 @@ is kept here so the history isn't lost.
 | 23 | Anomaly test falls back to the source-wide baseline | Own-instrument baselines only; the source-wide one is descriptive | The pool is mostly VIIRS and MODIS sees only bigger fires: most 2023 confirmed false positives were MODIS passes judged against it. Removing it halved them (0.161% → 0.083% on 2023, 0.059% → 0.040% on 2024) |
 | 24 | Promote a Road A site after ~20 nights | ≥ 10 distinct days *and* ≥ 50% of observable days since its first fire | Calendar days promoted Baghjan 66 days after it caught fire (the monsoon hid it); observable days, 21 |
 | 25 | Extreme tier z > 7 and > 3× p99 | z > 7 and > 6× p99 (calibrated on 2023) | 3× p99 fired on 0.045% of real passes against a 0.01% target. The cost: single-pass recall falls from 62% to ~7% |
+| 26 | Critical asset register: ~200 entries compiled by hand from PESO, CEA and MoPNG | Generated from OSM tags and WRI's power plant list (48,107 entries incl. 9 nuclear plants); manual rows survive reseeding | The user approved skipping the manual compilation for the prototype. Still static and never thermal, so the non-negotiable holds |
+| 27 | Wind for the downwind term from Open-Meteo | NASA POWER daily U10M/V10M components | Same keyless service as the cloud record, one request per tile-year per component. POWER's daily `WD10M` comes back as nonsense, and a day's mean direction is meaningless where its mean vector is not |
+| 28 | Exposure's asset term: a count of assets within 10 km | A criticality-weighted count | 41,000 of the 48,000 entries are mines and industrial estates; an unweighted count would rate every coal-belt fire as exposed as one beside a refinery |

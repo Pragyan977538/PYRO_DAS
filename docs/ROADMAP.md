@@ -42,7 +42,8 @@ differentiation and goes first. Stage 10's headline metric is not optional.
 | 4 | **Done 2026-09-29.** Model 1 block-CV balanced accuracy 61.2% (location-only reference 40.8%); oil and gas usable; biomass class refused (`reports/stage4_model1.md`) |
 | 5 | **Done 2026-09-29, one target missed.** 2024 replayed: 1.20M detections routed and explained. Road C confirmed recall 88.2% (target > 90%) at 0.040% false positives; Baghjan never Road B (`reports/stage5_inference.md`) |
 | 6 | **Done 2026-09-29.** 2024 assembled into 461,007 events (115 new-source incidents, 28 anomalies); Baghjan is exactly one event (`reports/stage6_events.md`) |
-| 7–10 | Not started |
+| 7 | **Done 2026-09-29.** 461,008 events scored with decompositions; remote big fires score ≤ 17.8, big fires at critical assets median 79.2 (`reports/stage7_risk.md`) |
+| 8–10 | Not started |
 
 ---
 
@@ -623,7 +624,8 @@ python scripts/check_dedup.py   # one real fire in the verified set => exactly o
 **Build:** the critical asset register seed (~200 entries), H/E/V computation, the
 multiplicative score, and the decomposition output.
 
-**Produces:** `firewatch/risk/`, `sql/003_critical_assets.sql`
+**Produces:** `firewatch/risk/` (`assets`, `population`, `score`), `firewatch/ingest/wind.py`,
+`sql/008_risk.sql`, `scripts/score_risk.py`, `scripts/check_risk.py`, `tests/test_risk.py`
 
 **Accept when:**
 ```bash
@@ -635,6 +637,20 @@ values behind each. A large fire far from population and assets scores low — v
 case explicitly; it is the argument for multiplication.
 
 **Blocked by:** Stage 6. **Effort:** one day. **First to cut.**
+
+**Result (2026-09-29):** accepted, except that the `curl` needs the Stage 8 API. The
+same decomposition is checked in the database by `scripts/check_risk.py`. Full write-up:
+`reports/stage7_risk.md`.
+- **All 461,008 events** of 2024 are scored in about 3 minutes, each with hazard,
+  exposure and vulnerability sub-scores and their raw values.
+- **Asset register:** generated from OSM and WRI power plants rather than hand-compiled
+  (user-approved). It has 48,107 entries, including 9 nuclear plants (CLAUDE.md changed
+  decisions 26–28).
+- **A large fire far from people and assets scores low:** 482 such 2024 fires score at
+  most 17.8. The largest, a 2,559 MW forest fire, scores 16.5; additive would give 42.4.
+  Big fires at critical assets have a median of 79.2.
+- **A test caught the downwind term pointing upwind** (FFT convolution flips the
+  kernel). It was fixed and everything rescored.
 
 ---
 

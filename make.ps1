@@ -118,6 +118,7 @@ function Show-Help {
     Write-Host '  train     stage 4: train Model 1 and write reports\model1_metrics.json'
     Write-Host '  inference stage 5: route the latest year through Roads A, B and C'
     Write-Host '  events    stage 6: assemble the latest run into incidents'
+    Write-Host '  risk      stage 7: score every event (hazard x exposure x vulnerability)'
     Write-Host '  spike     stage 1.5: cluster one real year of FIRMS (no database)'
     Write-Host '  down      stop containers (data kept)'
     Write-Host '  clean     stop containers AND delete the volume'
@@ -227,6 +228,12 @@ try {
             Assert-Venv
             Write-Step 'stage 6: event assembly (latest inference run)'
             Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\build_events.py')
+        }
+        'risk' {
+            Assert-Venv
+            Write-Step 'stage 7: risk scoring, then its checks'
+            Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\score_risk.py')
+            Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\check_risk.py')
         }
         'spike' {
             Assert-Venv

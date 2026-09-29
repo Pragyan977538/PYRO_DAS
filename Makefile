@@ -12,7 +12,7 @@ PY := .venv/bin/python
 BOOTSTRAP ?= python3.13
 endif
 
-.PHONY: help install db migrate psql test lint fixture backfill registry labels train inference events spike down clean logs
+.PHONY: help install db migrate psql test lint fixture backfill registry labels train inference events risk spike down clean logs
 
 help:
 	@echo "FireWatch - build tasks (Windows: .\\make.ps1 <target>)"
@@ -29,6 +29,7 @@ help:
 	@echo "  make train     stage 4: train Model 1 and write reports/model1_metrics.json"
 	@echo "  make inference stage 5: route the latest year through Roads A, B and C"
 	@echo "  make events    stage 6: assemble the latest run into incidents"
+	@echo "  make risk      stage 7: score every event (hazard x exposure x vulnerability)"
 	@echo "  make spike     stage 1.5: cluster one real year of FIRMS (no database)"
 	@echo "  make down      stop containers (data kept)"
 	@echo "  make clean     stop containers AND delete the volume"
@@ -93,6 +94,11 @@ inference:
 events:
 	@echo ">> stage 6: event assembly (latest inference run)"
 	$(PY) scripts/build_events.py
+
+risk:
+	@echo ">> stage 7: risk scoring, then its checks"
+	$(PY) scripts/score_risk.py
+	$(PY) scripts/check_risk.py
 
 spike:
 	@echo ">> stage 1.5: one real year of FIRMS, clustered three ways"

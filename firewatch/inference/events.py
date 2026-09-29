@@ -271,7 +271,8 @@ def _reason(r) -> str:
     # A source Model 1 has not classified yet has no class: say so, not "nan".
     cls = (r.event_class if isinstance(r.event_class, str) else "unclassified").replace("_", " ")
     if r.kind == "anomaly":
-        return (f"{r.alert or 'watch'} anomaly at registered {cls} source {r.source_id}: "
+        return (f"{r.alert or 'watch'} anomaly at registered {cls} source "
+                f"{int(r.source_id)}: "
                 f"{span}, peak {r.peak_frp:.0f} MW")
     if r.kind == "new_source":
         what = (f"new persistent {cls} site" if r.category == "industrial"
