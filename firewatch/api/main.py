@@ -45,6 +45,16 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"],
                    allow_headers=["*"])
 
 
+@app.middleware("http")
+async def revalidate_app_files(request, call_next):
+    """The map's own files are revalidated on every load, so an updated app.js is
+    never shadowed by a cached one mid-demo. API responses are left alone."""
+    response = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 # ------------------------------------------------------------------ helpers
 
 def _rows(sql: str, params: dict | None = None) -> list[dict[str, Any]]:
@@ -380,12 +390,58 @@ def observability(day: Annotated[date, Query(alias="date")],
                      "source": "NASA POWER CLOUD_AMT, CERES SYN1deg, daily mean"}}
 
 
+@app.get("/api/summary", tags=["meta"])
+def summary(start: date | None = None, end: date | None = None) -> dict:
+    """Counts for a time window: detections by category and road, alerts, events
+    by kind, and the ten highest-risk events -- the map's legend and watch list."""
+    first, last = _window(start, end)
+    params = {"s": first, "e": last}
+    by_cat = _rows("""
+        SELECT category, count(*) AS n FROM detections
+         WHERE acq_datetime >= :s AND acq_datetime < :e AND road IS NOT NULL
+         GROUP BY 1""", params)
+    by_road = _rows("""
+        SELECT road, count(*) AS n, count(*) FILTER (WHERE alert = 'confirmed') AS confirmed,
+               count(*) FILTER (WHERE alert = 'provisional') AS provisional,
+               count(*) FILTER (WHERE alert = 'new_source') AS new_source
+          FROM detections WHERE acq_datetime >= :s AND acq_datetime < :e
+           AND road IS NOT NULL GROUP BY 1""", params)
+    top = _rows("""
+        SELECT event_id, kind, category, event_class, alert, status,
+               round(risk_score::numeric, 1)::float AS risk, reason,
+               ST_X(centroid) AS lon, ST_Y(centroid) AS lat, first_seen, last_seen
+          FROM events WHERE last_seen >= :s AND first_seen < :e
+         ORDER BY risk_score DESC NULLS LAST LIMIT 10""", params)
+    kinds = _rows("""
+        SELECT kind, count(*) AS n FROM events
+         WHERE last_seen >= :s AND first_seen < :e GROUP BY 1""", params)
+    return {"window": [first.isoformat(), last.isoformat()],
+            "categories": {r["category"]: r["n"] for r in by_cat},
+            "roads": {str(r["road"]): {k: v for k, v in r.items() if k != "road"}
+                      for r in by_road},
+            "events": {r["kind"]: r["n"] for r in kinds},
+            "top_events": [{k: _jsonable(v) for k, v in r.items()} for r in top]}
+
+
+# ---------------------------------------------------------------- basemap
+
+@app.get("/basemap/{name}.geojson", include_in_schema=False)
+def basemap(name: str) -> FileResponse:
+    """The offline basemap layers (``make basemap``), served locally."""
+    from firewatch.ingest.basemap import LAYERS, basemap_dir
+
+    path = basemap_dir() / f"{name}.geojson"
+    if name not in LAYERS or not path.exists():
+        raise HTTPException(404, f"basemap layer {name!r} not built: run `make basemap`")
+    return FileResponse(path, media_type="application/geo+json")
+
+
 # ------------------------------------------------------------------ tiles
 
 @app.get("/api/tiles/detections/{z}/{x}/{y}.mvt", tags=["tiles"])
 def detection_tile(z: int, x: int, y: int, start: date | None = None,
                    end: date | None = None) -> Response:
-    """Detections as a vector tile; binned below zoom 8."""
+    """Detections as a vector tile; binned below zoom 7."""
     first, last = _window(start, end)
     return Response(tiles.detections(z, x, y, first, last), media_type=tiles.MVT_MEDIA_TYPE)
 

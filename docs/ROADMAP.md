@@ -44,7 +44,8 @@ differentiation and goes first. Stage 10's headline metric is not optional.
 | 6 | **Done 2026-09-29.** 2024 assembled into 461,007 events (115 new-source incidents, 28 anomalies); Baghjan is exactly one event (`reports/stage6_events.md`) |
 | 7 | **Done 2026-09-29.** 461,008 events scored with decompositions; remote big fires score ≤ 17.8, big fires at critical assets median 79.2 (`reports/stage7_risk.md`) |
 | 8 | **Done 2026-09-29.** FastAPI: sources, detections, events (with risk breakdown), timeseries, observability, vector tiles; acceptance calls pass on the live server |
-| 9–10 | Not started |
+| 9 | **Done 2026-09-29, one gap.** The map works offline and every acceptance behaviour was checked in a browser; `docker compose up` is written but unverified (no Docker on the build machine) |
+| 10 | Not started |
 
 ---
 
@@ -698,7 +699,9 @@ for Road C); FRP time-series chart; time slider; observability overlay. **Offlin
 basemap:** a PMTiles extract of India served locally, because venue internet at the
 finale is unreliable.
 
-**Produces:** `web/`
+**Produces:** `web/` (vendored MapLibre 4.7.1), `firewatch/ingest/basemap.py`,
+`scripts/build_basemap.py`, `Dockerfile`, the `api` service in `docker-compose.yml`,
+`tests/test_web.py`
 
 **Accept when:** every class layer toggles independently; clicking any point opens the
 detail panel with a populated reason field; the time slider redraws; the app runs from
@@ -706,6 +709,25 @@ detail panel with a populated reason field; the time slider redraws; the app run
 
 **Blocked by:** Stage 8. **Effort:** two days.
 **This is deliverable (ii). It must exist even if it is plain.**
+
+**Result (2026-09-29):** the map runs at http://localhost:8000 (`make basemap`, then
+`make api`), checked in a browser.
+- **Every class layer toggles independently:** five fire categories, alerts, three
+  source classes, provisional sites, incidents and cloud cover.
+- **Clicking a detection opens the detail panel** with a populated reason. It shows
+  class and confidence, temperature (or why there is none), FRP against the site's
+  own baseline, the nearest named facility, the alert tier and the incident with its
+  risk. Below zoom 7 detections are binned, and clicking a bin zooms in.
+- **The time slider redraws** tiles, incidents, counts and the risk watch list. Play
+  animates it.
+- **Source panels** chart the FRP history against the site's median and p99. **Event
+  panels** decompose the risk.
+- **Offline.** The basemap is Natural Earth (India point of view) in 1.7 MB of local
+  GeoJSON, and MapLibre is vendored. Every request the page makes is to localhost,
+  and `tests/test_web.py` fails if an external URL appears.
+- **Docker is not verified.** `docker compose up` (the new `api` service and its
+  `Dockerfile`) is written but **untested: Docker is not installed on the build
+  machine**. Run it once on the demo laptop before the finale.
 
 ---
 

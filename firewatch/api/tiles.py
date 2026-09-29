@@ -1,10 +1,10 @@
 """Mapbox vector tiles straight from PostGIS (``ST_AsMVT``).
 
 A year of India is over a million detections, far past what GeoJSON can carry to
-a browser. Tiles carry only what is in view. Below zoom 8 a tile would still
+a browser. Tiles carry only what is in view. Below zoom 7 a tile would still
 hold hundreds of thousands of points, so detections are binned onto a 128 x 128
 grid per tile: each bin carries its count, its commonest category and how many
-alerts it holds. From zoom 8 up, every detection is its own feature.
+alerts it holds. From zoom 7 up, every detection is its own feature.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from sqlalchemy import text
 from firewatch.db import engine
 
 WEB_MERCATOR_WIDTH = 40_075_016.68557849
-BIN_BELOW_ZOOM = 8
+BIN_BELOW_ZOOM = 7
 BINS_PER_TILE = 128
 MVT_MEDIA_TYPE = "application/vnd.mapbox-vector-tile"
 

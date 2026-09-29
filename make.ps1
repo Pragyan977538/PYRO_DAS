@@ -119,6 +119,7 @@ function Show-Help {
     Write-Host '  inference stage 5: route the latest year through Roads A, B and C'
     Write-Host '  events    stage 6: assemble the latest run into incidents'
     Write-Host '  risk      stage 7: score every event (hazard x exposure x vulnerability)'
+    Write-Host '  basemap   stage 9: build the offline basemap (Natural Earth, India POV)'
     Write-Host '  api       stage 8-9: serve the API and the map on http://localhost:8000'
     Write-Host '  spike     stage 1.5: cluster one real year of FIRMS (no database)'
     Write-Host '  down      stop containers (data kept)'
@@ -240,6 +241,11 @@ try {
             Assert-Venv
             Write-Step 'stage 1.5: one real year of FIRMS, clustered three ways'
             Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\spike_cluster.py')
+        }
+        'basemap' {
+            Assert-Venv
+            Write-Step 'stage 9: offline basemap -> data\basemap'
+            Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\build_basemap.py')
         }
         'api' {
             Assert-Venv

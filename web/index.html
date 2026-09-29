@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FireWatch India</title>
+  <meta name="description" content="Industrial fires and persistent thermal sources over India, segregated and explained. SIH 2026, PS 26162.">
+  <link rel="stylesheet" href="vendor/maplibre-gl.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <button class="icon-btn" id="menu" aria-label="Show or hide the controls" aria-controls="side">&#9776;</button>
+    <div class="brand">
+      <strong>FireWatch</strong>
+      <span class="sub">Is this fire normal for this place?</span>
+    </div>
+    <div class="chips" id="chips" aria-live="polite"></div>
+  </header>
+
+  <aside class="side" id="side" aria-label="Map controls">
+    <section>
+      <h2>Time</h2>
+      <div class="window-label" id="window-label">&nbsp;</div>
+      <input type="range" id="day" min="0" max="0" value="0" aria-label="Last day of the window">
+      <div class="row">
+        <label for="days">Window</label>
+        <select id="days">
+          <option value="1">1 day</option>
+          <option value="7" selected>7 days</option>
+          <option value="30">30 days</option>
+        </select>
+        <button class="btn" id="play" aria-pressed="false">&#9654; Play</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Fires, by what is burning</h2>
+      <ul class="toggles" id="category-toggles"></ul>
+      <label class="toggle"><input type="checkbox" id="alerts" checked>
+        <span class="ring" aria-hidden="true"></span> Alerts (anomaly or new persistent site)
+        <span class="count" id="count-alerts"></span></label>
+    </section>
+
+    <section>
+      <h2>Known thermal sources</h2>
+      <ul class="toggles" id="source-toggles"></ul>
+    </section>
+
+    <section>
+      <h2>Incidents and risk</h2>
+      <label class="toggle"><input type="checkbox" id="events" checked>
+        <span class="swatch risk" aria-hidden="true"></span> Incidents with risk &ge;
+        <output id="min-risk-out">60</output></label>
+      <input type="range" id="min-risk" min="0" max="90" step="5" value="60"
+             aria-label="Minimum risk to show">
+      <label class="toggle"><input type="checkbox" id="cloud">
+        <span class="swatch cloud" aria-hidden="true"></span> Cloud cover (where we were blind)</label>
+    </section>
+
+    <section>
+      <h2>Highest risk in this window</h2>
+      <ol class="top" id="top-events"><li class="muted">Loading&hellip;</li></ol>
+    </section>
+
+    <footer class="credits">
+      Detections: NASA FIRMS (VIIRS, MODIS). Basemap: Natural Earth, India point of view.
+      Population: WorldPop. Cloud and wind: NASA POWER. Facilities: OpenStreetMap, WRI.
+    </footer>
+  </aside>
+
+  <main class="map" id="map" aria-label="Map of fire detections"></main>
+
+  <aside class="panel" id="panel" hidden aria-live="polite" aria-label="Details">
+    <button class="icon-btn close" id="close" aria-label="Close details">&times;</button>
+    <div id="panel-body"></div>
+  </aside>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script src="vendor/maplibre-gl.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
