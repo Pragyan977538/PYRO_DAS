@@ -115,9 +115,13 @@ def cross_validate(X: pd.DataFrame, y: np.ndarray, groups: np.ndarray, n_classes
 
 
 def scores(y: np.ndarray, pred: np.ndarray, classes: list[str]) -> dict:
-    from sklearn.metrics import (accuracy_score, balanced_accuracy_score,
-                                 confusion_matrix, f1_score,
-                                 precision_recall_fscore_support)
+    from sklearn.metrics import (
+        accuracy_score,
+        balanced_accuracy_score,
+        confusion_matrix,
+        f1_score,
+        precision_recall_fscore_support,
+    )
 
     p, r, f, s = precision_recall_fscore_support(y, pred, labels=range(len(classes)),
                                                  zero_division=0)

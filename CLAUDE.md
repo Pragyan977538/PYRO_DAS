@@ -133,6 +133,15 @@ The three VIIRS units run the same 375 m algorithm, so their history pools. Each
 needs n ≥ 30; otherwise fall back to instrument × day/night, then to the source-wide
 baseline.
 
+- **The unit is the pass:** one sensor's overpass of one source. Its value is the
+  **hottest pixel**, and baselines are built from pass maxima. The most extreme of k
+  pixels is not one pixel, and a pass total would drown a one-pixel fire at a big site.
+- **The anomaly test stops at the instrument.** A pass is judged only against its own
+  instrument's baseline; the source-wide one describes and never judges. The pool is
+  mostly VIIRS, and MODIS only detects the bigger fires, so a MODIS pass looks abnormal
+  against it by construction. That bias alone halved the confirmed false positives when
+  removed (Stage 5).
+
 ### Median and MAD, never mean and standard deviation
 
 FRP is heavily right-skewed. One past explosion permanently inflates σ and the detector
@@ -146,10 +155,17 @@ extreme = (z > Z_EXTREME) and (frp > p99 * P99_EXTREME)        # starting values
 
 - **Confirmed alert:** `breach` on two consecutive passes. That drops the false-positive
   rate by roughly an order of magnitude.
+  - "Consecutive" means the previous detection pass at the source, from any sensor,
+    with no normal pass between, and **no time limit**.
+  - A weak source is not detected on every overpass. A 24 h limit cut injected-spike
+    recall from 90% to 55% on real 2024 histories, while false positives barely moved.
 - **Provisional alert:** `extreme` on a single pass. Short blasts are the deadliest events,
   and they often burn out between passes; after S-NPP stops a site is seen in about two
-  windows a day. Thresholds live in config and are calibrated in Stage 5 against spikes
-  injected into real histories.
+  windows a day. Thresholds live in config (`ANOMALY_EXTREME`) and were calibrated in
+  Stage 5 against spikes injected into real histories: **z > 7 and > 6× p99**.
+  - The starting 3× p99 fired on 0.045% of real 2023 passes, against a 0.01% target.
+  - At 6× p99, the tier catches only ~7% of single-pass spikes. That trade-off is
+    the user's to revisit.
 
 ### Class B is the complement of Class C, not a separate test
 
@@ -226,6 +242,15 @@ industrial class, with a stable fingerprint — and ideally an analyst confirms 
 promotion. Accidents can burn for months: the Baghjan blowout (Assam, 2020) burned for
 about five. **Baghjan is the regression test** — it must stay an alert for its whole life
 and never become "normal".
+
+Promotion counts persistence over **observable** days, like everything else:
+- A Road A cluster no wider than 2 km is promoted when it burned on ≥ 10 distinct
+  days, and on ≥ 50% of the days it could be seen since its first fire (cloud from
+  NASA POWER).
+- A calendar rule (≥ 20 days) promoted Baghjan 66 days after it caught fire, because
+  the monsoon hid it. The observable-day rule promotes it in 21. It is never Road B.
+- Nothing automatic clears `provisional`, not even the weekly registry rebuild. Only
+  an analyst does (`promotion.confirm`).
 
 ### All temperature statistics must be NaN-safe
 
@@ -451,3 +476,7 @@ is kept here so the history isn't lost.
 | 19 | Recurrence gate in ≥ 2 years (approved on 2021–2023) | ≥ 3 years on the full 2012–2024 archive; months and days unchanged | The rule fixed before the full-archive sweep: the two-year gate missed the 85% on-GIHS floor (79.5%, 679 sources); the best passing setting was ≥ 3 years (557 sources, 83.4% recall, 86.2% on GIHS). Two years out of thirteen is a looser test than two out of three |
 | 20 | recurrent_biomass added if ≥ ~30 unlabelled sources sit on cropland or forest | Also needs fewer than half the candidates on a GIHS-confirmed industrial site; GIHS decides only whether the class exists, never a label | Stage 4: 42 candidates, 81% on confirmed industry. The WorldCover rule was labelling unmapped mines and plants as biomass |
 | 21 | "A source takes the first group in table order" (heavy industry before mining) | Most specific first, in the census's order: oil_gas > steel_cement > thermal_power > mining > kiln (no label) > industrial_other | The approved counts were computed in that order; generic `landuse=industrial` around coalfields would otherwise relabel coal fires as heavy industry |
+| 22 | Baselines computed on detections (pixels) | Computed on passes: each sensor overpass's hottest pixel | A pixel baseline flags every large multi-pixel site on most passes, because the most extreme of k pixels is not one pixel |
+| 23 | Anomaly test falls back to the source-wide baseline | Own-instrument baselines only; the source-wide one is descriptive | The pool is mostly VIIRS and MODIS sees only bigger fires: most 2023 confirmed false positives were MODIS passes judged against it. Removing it halved them (0.161% → 0.083% on 2023, 0.059% → 0.040% on 2024) |
+| 24 | Promote a Road A site after ~20 nights | ≥ 10 distinct days *and* ≥ 50% of observable days since its first fire | Calendar days promoted Baghjan 66 days after it caught fire (the monsoon hid it); observable days, 21 |
+| 25 | Extreme tier z > 7 and > 3× p99 | z > 7 and > 6× p99 (calibrated on 2023) | 3× p99 fired on 0.045% of real passes against a 0.01% target. The cost: single-pass recall falls from 62% to ~7% |

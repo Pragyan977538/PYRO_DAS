@@ -26,6 +26,7 @@ import pandas as pd
 from firewatch.db import fetch_all, get_conn
 from firewatch.grid import CELL_M, cell_bounds, from_metres, grid_cell
 from firewatch.registry.baseline import baselines as compute_baselines
+from firewatch.registry.baseline import pass_table
 from firewatch.registry.cells import (
     Gate,
     add_metres,
@@ -62,8 +63,9 @@ class Registry:
 # ------------------------------------------------------------------------ reads
 
 _DET_COLUMNS = ("detection_id, extract(epoch FROM acq_datetime)::bigint AS t, latitude, "
-                "longitude, daynight, frp, bt4, bt5, firms_type, vnf_temp_k, vnf_area_m2")
-_DTYPES = {"detection_id": "int64", "t": "int64", "latitude": "float64",
+                "longitude, sensor, daynight, frp, bt4, bt5, firms_type, vnf_temp_k, "
+                "vnf_area_m2")
+_DTYPES = {"detection_id": "int64", "t": "int64", "latitude": "float64", "sensor": "category",
            "longitude": "float64", "daynight": "category", "frp": "float32",
            "bt4": "float32", "bt5": "float32", "firms_type": "float32",
            "vnf_temp_k": "float32", "vnf_area_m2": "float32"}
@@ -230,10 +232,10 @@ def build(viirs: pd.DataFrame, modis: pd.DataFrame, gate: Gate,
         modis = modis.assign(source=pd.Series(dtype=np.int64))
     sources = _source_table(cells, viirs, modis)
     fps = fingerprints(viirs, clusters, clear_reader(sources))
-    both = pd.concat([d[["source", "instrument", "daynight", "acq_datetime", "frp"]]
-                      for d in (viirs, modis) if len(d)], ignore_index=True)
+    both = pd.concat([d[["source", "sensor", "instrument", "daynight", "acq_datetime",
+                         "frp"]] for d in (viirs, modis) if len(d)], ignore_index=True)
     registry = Registry(gate=gate, cells=cells, clusters=clusters, sources=sources,
-                        fingerprints=fps, baselines=compute_baselines(both),
+                        fingerprints=fps, baselines=compute_baselines(pass_table(both)),
                         viirs=viirs, modis=modis)
     registry.stats = {
         "viirs_detections": int(len(viirs)), "modis_detections": int(len(modis)),
@@ -350,7 +352,9 @@ def write(reg: Registry) -> dict[int, int]:
         cur.execute("""
             UPDATE detections d SET source_id = NULL
              WHERE d.source_id IS NOT NULL
-               AND NOT EXISTS (SELECT 1 FROM assign_stage a WHERE a.detection_id = d.detection_id)""")
+               AND d.source_id <> ALL(%s)
+               AND NOT EXISTS (SELECT 1 FROM assign_stage a WHERE a.detection_id = d.detection_id)""",
+            (list(provisional - kept) or [-1],))
         cleared = cur.rowcount
         cur.execute("""
             UPDATE detections d SET source_id = a.source_id FROM assign_stage a

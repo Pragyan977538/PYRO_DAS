@@ -116,6 +116,7 @@ function Show-Help {
     Write-Host '  registry  stage 3: build the source registry, then check it'
     Write-Host '  labels    stage 4: weak labels for every registry source'
     Write-Host '  train     stage 4: train Model 1 and write reports\model1_metrics.json'
+    Write-Host '  inference stage 5: route the latest year through Roads A, B and C'
     Write-Host '  spike     stage 1.5: cluster one real year of FIRMS (no database)'
     Write-Host '  down      stop containers (data kept)'
     Write-Host '  clean     stop containers AND delete the volume'
@@ -215,6 +216,11 @@ try {
             Assert-Venv
             Write-Step 'stage 4: Model 1 (leakage guard, block CV, final fit)'
             Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\train.py')
+        }
+        'inference' {
+            Assert-Venv
+            Write-Step 'stage 5: router, Road A, Road C, promotion (replays the latest year)'
+            Invoke-Native -FilePath $VenvPython -ArgumentList @('scripts\run_inference.py')
         }
         'spike' {
             Assert-Venv

@@ -72,6 +72,19 @@ def _parse_gate(raw: str) -> tuple[int, int, int]:
     return months, days, years
 
 
+def _parse_extreme(raw: str) -> tuple[float, float]:
+    """Parse ``z,p99_multiple`` for Road C's extreme (provisional) tier."""
+    parts = [p.strip() for p in raw.split(",")]
+    try:
+        z, mult = (float(p) for p in parts)
+    except ValueError as exc:
+        raise ConfigError(f"ANOMALY_EXTREME must be 'z,p99_multiple', got {raw!r}") from exc
+    # The extreme tier must be stricter than the breach test it sits above.
+    if not (z > 3.5 and mult > 1.5):
+        raise ConfigError(f"ANOMALY_EXTREME must exceed the breach test (3.5, 1.5): {raw!r}")
+    return z, mult
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     database_url: str
@@ -87,6 +100,11 @@ class Settings:
     # was approved on 2021-2023; the full-archive recalibration (Stage 3, rule
     # fixed before the sweep) moved it to three: reports/stage3/sweep.md.
     registry_gate: tuple[int, int, int] = (3, 10, 3)
+    # Road C's extreme tier (z, multiple of p99): one pass this far out raises a
+    # provisional alert. CLAUDE.md started at (7, 3); the Stage 5 calibration on
+    # 2023 (reports/stage5_inference.md) needed 6x p99 to keep false alerts under
+    # 0.01% of passes.
+    anomaly_extreme: tuple[float, float] = (7.0, 6.0)
     repo_root: Path = field(default=_REPO_ROOT)
 
     @property
@@ -169,6 +187,7 @@ def load_settings() -> Settings:
         data_dir=data_dir,
         log_level=log_level,
         registry_gate=_parse_gate(_env("REGISTRY_GATE", "3,10,3") or "3,10,3"),
+        anomaly_extreme=_parse_extreme(_env("ANOMALY_EXTREME", "7,6") or "7,6"),
     )
 
 

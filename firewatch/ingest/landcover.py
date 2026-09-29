@@ -12,6 +12,7 @@ Cropland labels come from here only, never from season (CLAUDE.md).
 from __future__ import annotations
 
 import math
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -78,3 +79,76 @@ def sample_fixture(lat, lon) -> np.ndarray:
 def landcover(lat, lon, mock: bool | None = None) -> np.ndarray:
     use_mock = settings().mock_mode if mock is None else mock
     return sample_fixture(lat, lon) if use_mock else sample(lat, lon)
+
+
+# ------------------------------------------------------ India at detection scale
+
+#: Overview factor for the India mosaic: 10 m x 32 = ~300 m, just under a VIIRS
+#: pixel. Road A asks what land a *detection* sits on, and a 375 m pixel has no
+#: 10 m answer; a remote read per detection would also take days for a year of
+#: fires. WorldCover's own overviews make the mosaic a few minutes' download.
+MOSAIC_FACTOR = 32
+MOSAIC_DEG = 3.0 / (36000 // MOSAIC_FACTOR)
+
+
+def mosaic_path() -> Path:
+    return settings().raw_dir / "worldcover" / f"india_wc2021_x{MOSAIC_FACTOR}.tif"
+
+
+def build_mosaic(path: Path | None = None) -> Path:
+    """Mosaic WorldCover's overviews over the India bbox into one local GeoTIFF."""
+    import rasterio
+    from rasterio.enums import Resampling
+    from rasterio.transform import from_origin
+
+    path = path or mosaic_path()
+    if path.exists():
+        return path
+    w, s, e, n = settings().india_bbox
+    lat0, lon0 = math.floor(s / 3) * 3, math.floor(w / 3) * 3
+    lat1, lon1 = math.ceil(n / 3) * 3, math.ceil(e / 3) * 3
+    size = 36000 // MOSAIC_FACTOR
+    rows, cols = int((lat1 - lat0) / 3) * size, int((lon1 - lon0) / 3) * size
+    out = np.zeros((rows, cols), dtype=np.uint8)
+    with rasterio.Env(**GDAL_ENV):
+        for la in range(lat0, lat1, 3):
+            for lo in range(lon0, lon1, 3):
+                try:
+                    with rasterio.open("/vsicurl/" + TILE_URL.format(
+                            tile=tile_name(la + 1, lo + 1))) as ds:
+                        block = ds.read(1, out_shape=(size, size),
+                                        resampling=Resampling.nearest)
+                except rasterio.errors.RasterioIOError:
+                    continue   # open sea: no tile
+                r = int((lat1 - (la + 3)) / 3) * size
+                c = int((lo - lon0) / 3) * size
+                out[r:r + size, c:c + size] = block
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".part.tif")
+    with rasterio.open(tmp, "w", driver="GTiff", width=cols, height=rows, count=1,
+                       dtype="uint8", crs="EPSG:4326", compress="deflate",
+                       transform=from_origin(lon0, lat1, MOSAIC_DEG, MOSAIC_DEG)) as dst:
+        dst.write(out, 1)
+    tmp.replace(path)
+    return path
+
+
+class Mosaic:
+    """The India mosaic in memory: WorldCover class at any point, 0 off the map."""
+
+    def __init__(self, path: Path | None = None) -> None:
+        import rasterio
+        with rasterio.open(path or mosaic_path()) as ds:
+            self.array = ds.read(1)
+            self.west, self.north = ds.transform.c, ds.transform.f
+            self.step = ds.transform.a
+
+    def sample(self, lat, lon) -> np.ndarray:
+        lat = np.asarray(lat, dtype=float)
+        lon = np.asarray(lon, dtype=float)
+        r = np.floor((self.north - lat) / self.step).astype(np.int64)
+        c = np.floor((lon - self.west) / self.step).astype(np.int64)
+        ok = (r >= 0) & (r < self.array.shape[0]) & (c >= 0) & (c < self.array.shape[1])
+        out = np.zeros(lat.shape, dtype=np.int16)
+        out[ok] = self.array[r[ok], c[ok]]
+        return out

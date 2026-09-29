@@ -32,8 +32,64 @@ SEASON_OF_MONTH = {1: "winter", 2: "winter",
                    10: "post_monsoon", 11: "post_monsoon", 12: "post_monsoon"}
 
 
+#: Detections of one sensor at one source this close in time are one overpass.
+PASS_GAP = pd.Timedelta(minutes=20)
+
+
 def season(month: int) -> str:
     return SEASON_OF_MONTH[int(month)]
+
+
+def pass_ids(det: pd.DataFrame) -> np.ndarray:
+    """A pass id per row of ``det``, in its own order; -1 off a source.
+
+    A pass is one sensor's detections at one source within ``PASS_GAP``: one
+    overpass. Ids increase with (source, sensor, time).
+    """
+    d = det.loc[det["source"] >= 0].sort_values(["source", "sensor", "acq_datetime"],
+                                                kind="stable")
+    out = pd.Series(-1, index=det.index, dtype=np.int64)
+    if d.empty:
+        return out.to_numpy()
+    t = pd.Series(utc(d["acq_datetime"]), index=d.index)
+    src, sensor = d["source"], d["sensor"].astype(str)
+    new = (src != src.shift()) | (sensor != sensor.shift()) | (t - t.shift() > PASS_GAP)
+    out.loc[d.index] = new.cumsum().to_numpy()
+    return out.to_numpy()
+
+
+def pass_table(det: pd.DataFrame) -> pd.DataFrame:
+    """Detections at sources, grouped into passes.
+
+    The pass's ``frp`` is its hottest pixel. Baselines and the anomaly test both
+    work on this unit: a pixel-level baseline would flag every large multi-pixel
+    site on most passes (the most extreme of k pixels is not one pixel), and a pass
+    total would drown a one-pixel fire at a site with many pixels.
+
+    ``det`` needs ``source`` (>= 0 at a source), ``sensor``, ``instrument``,
+    ``daynight``, ``acq_datetime`` and ``frp``. Returns one row per pass:
+    ``pass_id`` (as ``pass_ids``), ``source``, ``sensor``, ``instrument``,
+    ``daynight``, ``acq_datetime`` (first pixel), ``frp`` (max), ``frp_sum``, ``n_det``.
+    """
+    pid = pass_ids(det)
+    on = pid >= 0
+    if not on.any():
+        return pd.DataFrame(columns=["pass_id", "source", "sensor", "instrument", "daynight",
+                                     "acq_datetime", "frp", "frp_sum", "n_det"])
+    d = det.loc[on]
+    frame = pd.DataFrame({"pass_id": pid[on], "source": d["source"].to_numpy(),
+                          "sensor": d["sensor"].astype(str).to_numpy(),
+                          "instrument": d["instrument"].to_numpy(),
+                          "daynight": d["daynight"].astype(str).to_numpy(),
+                          "acq_datetime": utc(d["acq_datetime"]),
+                          "frp": d["frp"].to_numpy(dtype=float)})
+    passes = frame.groupby("pass_id", sort=True).agg(
+        source=("source", "first"), sensor=("sensor", "first"),
+        instrument=("instrument", "first"), daynight=("daynight", "first"),
+        acq_datetime=("acq_datetime", "min"), frp=("frp", "max"),
+        frp_sum=("frp", "sum"), n_det=("frp", "size")).reset_index()
+    passes["acq_datetime"] = utc(passes["acq_datetime"])
+    return passes
 
 
 def stats(frp: np.ndarray) -> dict[str, float]:
@@ -47,8 +103,9 @@ def stats(frp: np.ndarray) -> dict[str, float]:
 
 
 def baselines(det: pd.DataFrame) -> dict[int, dict[str, dict[str, float]]]:
-    """Every source's baselines. ``det`` carries ``source`` (>= 0 when assigned),
-    ``instrument``, ``daynight``, ``acq_datetime`` and ``frp``.
+    """Every source's baselines, one sample per row of ``det`` -- in the registry,
+    the rows are passes (``pass_table``). ``det`` carries ``source`` (>= 0 when
+    assigned), ``instrument``, ``daynight``, ``acq_datetime`` and ``frp``.
 
     Only buckets with n >= ``MIN_N`` are stored, except ``*``, which is stored for
     every source whatever its size so that a lookup always finds something.
@@ -74,13 +131,18 @@ def baselines(det: pd.DataFrame) -> dict[int, dict[str, dict[str, float]]]:
 
 
 def lookup(buckets: dict[str, dict[str, float]], instrument: str, daynight: str,
-           month: int) -> tuple[str, dict[str, float]]:
-    """The baseline a new detection is judged against, and which key supplied it.
+           month: int, source_wide: bool = True) -> tuple[str | None, dict[str, float] | None]:
+    """The baseline a new pass is judged against, and which key supplied it.
 
     instrument|daynight|season, else instrument|daynight, else source-wide.
+    ``source_wide=False`` stops at the instrument: the anomaly test uses that,
+    because the source-wide pool is mostly VIIRS and MODIS detects only the bigger
+    fires, so a MODIS pass judged against it looks abnormal by construction. On
+    2023 that one bias made up most of the confirmed false positives. Returns
+    ``(None, None)`` when nothing qualifies.
     """
-    for key in (f"{instrument}|{daynight}|{season(month)}", f"{instrument}|{daynight}",
-                SOURCE_WIDE):
+    keys = [f"{instrument}|{daynight}|{season(month)}", f"{instrument}|{daynight}"]
+    for key in keys + ([SOURCE_WIDE] if source_wide else []):
         if key in buckets:
             return key, buckets[key]
-    raise KeyError("baselines carry no source-wide '*' bucket")
+    return None, None

@@ -1,0 +1,2 @@
+event_id,name,kind,published_lat,published_lon,fire_lat,fire_lon,radius_m,start,end,source,notes
+BAGHJAN-2020,Baghjan well No. 5 blowout (Tinsukia; Assam),blowout,27.604,95.405,27.5962,95.3793,1000,2020-06-09,2020-11-15,https://en.wikipedia.org/wiki/2020_Assam_gas_and_oil_leak,"Blowout 27 May 2020; fire from 9 June; well killed 15 November. The published point is a persistent flare (registry source 549); the fire itself is the centroid of the 557 VIIRS detections within 5 km between the published dates (2.7 km WSW; sd ~300 m). The same months of 2019 had 3 detections there."

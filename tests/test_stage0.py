@@ -38,6 +38,7 @@ def clean_env(monkeypatch):
     for key in (
         "DATABASE_URL", "MOCK_MODE", "FIRMS_MAP_KEY", "EOG_USERNAME",
         "EOG_PASSWORD", "INDIA_BBOX", "DATA_DIR", "LOG_LEVEL", "REGISTRY_GATE",
+        "ANOMALY_EXTREME",
     ):
         monkeypatch.delenv(key, raising=False)
     monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg2://u:p@localhost:5432/db")
@@ -121,6 +122,14 @@ def test_bad_registry_gate_rejected(clean_env, bad):
         load_settings()
 
 
+def test_anomaly_extreme_default_and_guard(clean_env):
+    assert load_settings().anomaly_extreme == (7.0, 6.0)
+    for bad in ("3,2", "8", "x,y"):
+        clean_env.setenv("ANOMALY_EXTREME", bad)
+        with pytest.raises(ConfigError, match="ANOMALY_EXTREME"):
+            load_settings()
+
+
 def test_bbox_str_matches_firms_format(clean_env):
     assert load_settings().bbox_str == "68,6,98,37"
 
@@ -170,7 +179,8 @@ def test_task_runners_have_the_same_targets():
 def test_env_example_lists_every_setting():
     text = (REPO / ".env.example").read_text()
     for key in ("DATABASE_URL", "MOCK_MODE", "FIRMS_MAP_KEY", "EOG_USERNAME",
-                "EOG_PASSWORD", "INDIA_BBOX", "DATA_DIR", "LOG_LEVEL", "REGISTRY_GATE"):
+                "EOG_PASSWORD", "INDIA_BBOX", "DATA_DIR", "LOG_LEVEL", "REGISTRY_GATE",
+                "ANOMALY_EXTREME"):
         assert key in text, f"{key} not documented in .env.example"
 
 
