@@ -29,26 +29,21 @@ the reason for its class.*
 ## How it works
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph offline["Offline: the registry, rebuilt weekly"]
-        A["FIRMS archive<br/>2012–2024"] --> B["375 m cells +<br/>multi-year recurrence gate"]
-        B --> C["DBSCAN →<br/>persistent sources"]
-        C --> D["Fingerprint +<br/>per-source baseline"]
-        D --> E["XGBoost: oil &amp; gas /<br/>heavy industry / mining"]
+        direction LR
+        A["FIRMS archive<br/>2012–2024"] --> B["375 m cells +<br/>recurrence gate"] --> C["DBSCAN:<br/>persistent sources"] --> D["Fingerprint +<br/>own baseline"] --> E["XGBoost:<br/>source class"]
     end
     subgraph online["Online: every new detection"]
+        direction LR
         N["New detection"] --> Q{"Known source<br/>within 500 m?"}
-        Q -- "no" --> RA["Road A<br/>rules + land cover<br/>→ class + reason"]
+        Q -- "no" --> RA["Road A<br/>rules + land cover"]
         Q -- "yes" --> T{"Outside its own<br/>baseline?"}
         T -- "no" --> RB["Road B<br/>normal operation"]
-        T -- "yes" --> RC["Road C<br/>provisional / confirmed alert"]
+        T -- "yes" --> RC["Road C<br/>provisional or<br/>confirmed alert"]
     end
-    E --> Q
-    RA --> P["Persistent new site →<br/>provisional source, keeps alerting"]
-    RA --> EV["Events + risk score"]
-    RB --> EV
-    RC --> EV
-    EV --> MAP["API + map"]
+    offline -- "registry" --> online
+    online --> EV["Events + risk score"] --> MAP["API + map"]
 ```
 
 - **The registry.** Recurring heat is gridded, gated on recurrence across several years,
