@@ -1,4 +1,4 @@
-# FireWatch
+# PYRO_DAS
 
 Satellite-based detection and classification of industrial fires and persistent
 thermal sources over India. Built for **SIH 2026, problem statement 26162** (NTRO).
