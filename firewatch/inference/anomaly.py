@@ -1,7 +1,7 @@
 """Road C: is this pass abnormal for this site?
 
 Each pass at a registry source -- its hottest pixel -- is judged against that
-source's own baseline, never a type's, with median and MAD (CLAUDE.md):
+source's own baseline, never a type's, with median and MAD (docs/DESIGN.md §3.3-3.4):
 
     z       = 0.6745 * (frp - med) / max(mad, 1e-6)
     breach  = z > 3.5  and frp > 1.5 * p99          fixed: they fail differently

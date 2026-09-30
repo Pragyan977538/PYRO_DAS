@@ -101,7 +101,7 @@ class Settings:
     # fixed before the sweep) moved it to three: reports/stage3/sweep.md.
     registry_gate: tuple[int, int, int] = (3, 10, 3)
     # Road C's extreme tier (z, multiple of p99): one pass this far out raises a
-    # provisional alert. CLAUDE.md started at (7, 3); the Stage 5 calibration on
+    # provisional alert. The design started at (7, 3); the Stage 5 calibration on
     # 2023 (reports/stage5_inference.md) needed 6x p99 to keep false alerts under
     # 0.01% of passes.
     anomaly_extreme: tuple[float, float] = (7.0, 6.0)

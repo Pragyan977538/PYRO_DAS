@@ -152,7 +152,7 @@ def test_data_dir_resolves_absolute(clean_env):
 
 @pytest.mark.parametrize("rel", [
     "docker-compose.yml", "requirements.txt", ".env.example", ".gitignore",
-    "Makefile", "make.ps1", "README.md", "CLAUDE.md",
+    "Makefile", "make.ps1", "README.md", "docs/DESIGN.md",
     "sql/001_schema.sql", "sql/002_indexes.sql", "scripts/migrate.py",
     "firewatch/config.py", "firewatch/db.py", "firewatch/ingest/normalize.py",
 ])

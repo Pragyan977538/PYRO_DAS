@@ -256,7 +256,7 @@ class and a reason.
   - built-up land with no mapped facility (4,820)
   - water at ~300 m: riverbanks, char lands, wetlands (2,938)
   - bare ground with no mapped mine (2,474)
-- **The alternative the blueprint anticipated** was a FIRMS confidence filter
+- **The alternative the original design anticipated** was a FIRMS confidence filter
   (VIIRS low, MODIS < 30). It would have discarded:
   - **19.9% of Road A** (207,064 detections)
   - 19.4% of Road A's industrial detections (3,184 of 16,449)

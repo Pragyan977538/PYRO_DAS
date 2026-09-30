@@ -2,7 +2,7 @@
 
 Its inputs -- land cover, distance to mapped industry -- are exactly what every
 weak label is built from, so a model trained here could only learn the labelling
-rule back (CLAUDE.md). Instead the rules are written down, applied in order,
+rule back (docs/DESIGN.md §3.1). Instead the rules are written down, applied in order,
 first match wins, and the rule that fired becomes the reason on the map:
 
 1. a mapped facility within 375 m -> its class. A specific one (refinery, steel,

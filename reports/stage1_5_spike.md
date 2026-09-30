@@ -13,7 +13,7 @@
 >
 > **Rerun with correct distances.** All numbers here come from a rerun using EPSG:7755
 > metres. The first run's per-point equirectangular projection sheared distances by
-> ~300 m per 500 m north–south (CLAUDE.md, changed decision 17). The conclusions held.
+> ~300 m per 500 m north–south (DESIGN.md, decision 17). The conclusions held.
 
 Before Stage 3 is built on them, this spike tests two claims from the design review:
 
@@ -145,7 +145,7 @@ stayed clean under raw DBSCAN too (a 4.4 km cluster, 7% of it in October–Novem
   peak memory.
 - The full VIIRS archive for 2012–2024 is about 20 sensor-years. The three-year run
   (Stage 1.5b) measured the growth across years and puts raw DBSCAN on it at about
-  55 GB — more than this machine's 32 GB. The 330k-point blow-up in `docs/plan.md`
+  55 GB — more than this machine's 32 GB. The 330k-point blow-up in the earlier synthetic study
   fits this pattern: it was the data size, not the tree.
 - C's 271 MB is mostly the per-cell aggregation, which grows linearly with detections.
   The DBSCAN step itself runs on 1,959 cells.
@@ -186,7 +186,7 @@ The few Punjab cells in the upper right are the refinery.
     on precision
 - **Weak spot — Jamnagar:** at this gate only 31% of the Jamnagar box's detections are
   covered. Its flares are intermittent in VIIRS: the largest flare group was seen on
-  112 days in 2023, not the "~340 nights a year" the blueprint assumed for gas flares.
+  112 days in 2023, not the "~340 nights a year" the original design assumed for gas flares.
   A looser month threshold fixes most of this; see below.
 
 ## Gate sensitivity and the proposed starting values

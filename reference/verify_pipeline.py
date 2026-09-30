@@ -1,10 +1,11 @@
 """Synthetic end-to-end verification of the PS 26162 pipeline."""
-import numpy as np, pandas as pd
-from sklearn.cluster import DBSCAN
-from sklearn.model_selection import GroupKFold
-from sklearn.metrics import classification_report, confusion_matrix
-from xgboost import XGBClassifier
+import numpy as np
+import pandas as pd
 from scipy.stats import entropy
+from sklearn.cluster import DBSCAN
+from sklearn.metrics import classification_report
+from sklearn.model_selection import GroupKFold
+from xgboost import XGBClassifier
 
 rng = np.random.default_rng(42)
 YEARS, DAYS = 6, 2191
@@ -44,7 +45,8 @@ for cls,(T,Tsd,A,pers,frpm,cv,nr,mons) in SPEC.items():
         cv_i   = cv  * np.exp(rng.normal(0, 0.30*HETERO))
         nr_i   = np.clip(nr + rng.normal(0, 0.18), 0.05, 0.98)
         mons_i = mons if rng.random() > 0.15 else sorted(set(mons) | {int(rng.integers(1,13))})
-        lat = rng.uniform(8.5, 32.0); lon = rng.uniform(70.0, 88.0)
+        lat = rng.uniform(8.5, 32.0)
+        lon = rng.uniform(70.0, 88.0)
         if rng.random() < 0.18 and truth:            # 18% sit beside an existing source
             _,_,_, la, lo = truth[rng.integers(len(truth))]
             lat, lon = la + rng.normal(0,0.004), lo + rng.normal(0,0.004)
@@ -58,7 +60,8 @@ for cls,(T,Tsd,A,pers,frpm,cv,nr,mons) in SPEC.items():
             continue
         idx = np.where(fires)[0]
         frp = frpm_i*np.exp(rng.normal(0, cv_i, n))            # right-skewed
-        tmp = rng.normal(T_i, Tsd, n); tmp[rng.random(n) < VNF_MISS] = np.nan
+        tmp = rng.normal(T_i, Tsd, n)
+        tmp[rng.random(n) < VNF_MISS] = np.nan
         night = rng.random(n) < nr_i
         # detections jitter ~200 m around the source
         rows.append(pd.DataFrame({
@@ -120,7 +123,7 @@ for tr,te in GroupKFold(5).split(fp[FEATS], codes, groups=fp.state):
     m.fit(fp[FEATS].iloc[tr], y_tr)
     oof[te] = m.predict(fp[FEATS].iloc[te])
 acc = (oof==codes).mean()
-print(f"SOURCE CLASSIFIER  (thermal features only, no location, GroupKFold by state)")
+print("SOURCE CLASSIFIER  (thermal features only, no location, GroupKFold by state)")
 print(f"  overall accuracy {acc:.1%}   [benchmark to beat: 77%]")
 print(f"  degradations applied: {HETERO:.0%} within-class spread, {LABEL_NOISE:.0%} label noise, {VNF_MISS:.0%} temp missing\n")
 print(classification_report(codes, oof, target_names=names, digits=3, zero_division=0))
@@ -132,16 +135,19 @@ print("Top features:", ", ".join(f"{k} {v:.2f}" for k,v in imp.head(4).items()),
 
 # ---------- STEP 4: anomaly test (Road C) ----------
 def baseline(f):
-    med = np.median(f); mad = np.median(np.abs(f-med))
+    med = np.median(f)
+    mad = np.median(np.abs(f-med))
     return med, max(mad,1e-6), np.quantile(f,.99)
 
 def flag(v, b):
     med,mad,p99 = b
     return (0.6745*(v-med)/mad > 3.5) and (v > p99*1.5)
 
-fp_rate = []; tp_rate = []
-for cid, g in cl.groupby("cluster"):
-    if len(g) < 60: continue
+fp_rate = []
+tp_rate = []
+for _, g in cl.groupby("cluster"):
+    if len(g) < 60:
+        continue
     f = g.frp.values
     hist, live = f[:-30], f[-30:]
     b = baseline(hist)

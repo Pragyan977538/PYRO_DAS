@@ -449,7 +449,7 @@ async function openEvent(id) {
     <h4>Risk</h4>
     <div class="riskbig">${p.risk_score != null ? p.risk_score.toFixed(0) : "–"}<span class="muted" style="font-size:14px"> / 100</span></div>
     <div class="muted">${esc(b.formula || "")}</div>
-    ${term("Hazard", h, h ? `peak ${h.peak_frp_mw} MW (above ${(h.frp_percentile * 100).toFixed(0)}% of India's fires), ${h.pixels} pixels, ${esc(h.growth)}` : "")}
+    ${term("Hazard", h, h ? `peak ${h.peak_frp_mw} MW (above ${(h.frp_percentile * 100).toFixed(0)}% of India's fires), ${h.pixels} pixel${h.pixels === 1 ? "" : "s"}, ${esc(h.growth)}` : "")}
     ${term("Exposure", x, x ? `${fmt.format(x.pop_5km)} people within 5 km; ${x.pop_downwind_10km != null ? `${fmt.format(x.pop_downwind_10km)} downwind (towards ${x.downwind_bearing_deg}°)` : "no wind record"}; ${x.assets_10km} critical asset${x.assets_10km === 1 ? "" : "s"} within 10 km` : "")}
     ${term("Vulnerability", v, v ? (v.nearest ? `${esc(v.nearest)} (${esc(words(v.nearest_type))}), ${fmt.format(v.distance_m)} m` : "no critical asset within 2 km") + (v.own_class ? `; the source itself: ${esc(words(v.own_class))}` : "") : "")}
     <dl class="facts">

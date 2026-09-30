@@ -5,7 +5,7 @@ during a demo. pyosmium streams the extract in C++, assembles polygons, and hand
 Python only objects carrying one of the keys below, so a 1.7 GB file needs no
 native tools and no database-side OSM import.
 
-Each feature gets a ``label_group`` by the tag rules of CLAUDE.md's class table,
+Each feature gets a ``label_group`` by the tag rules of the class table in docs/DESIGN.md,
 first match in priority order. The fine groups are kept (thermal power apart from
 steel, for instance); Stage 4 maps them onto its three classes. The same rules
 drove the Stage 1.5b label census, so the census and the labels agree.
@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 SOURCE = "osm"
 KEYS = ("industrial", "man_made", "power", "landuse", "resource")
 
-#: fine label group -> Model 1 class (CLAUDE.md). Kiln has no class: it is kept
+#: fine label group -> Model 1 class (docs/DESIGN.md §3.2). Kiln has no class: it is kept
 #: as context only, since its labels at registry sources were wrong.
 CLASS_OF = {"oil_gas": "oil_gas", "steel_cement": "heavy_industry",
             "thermal_power": "heavy_industry", "industrial_other": "heavy_industry",

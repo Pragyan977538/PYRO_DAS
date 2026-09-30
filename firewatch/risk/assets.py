@@ -5,7 +5,7 @@ heat into cooling water far below what a satellite detects, so it is thermally
 invisible until something burns; a register built from fires would score it
 zero. The same goes for LPG plants, depots and chemical works.
 
-The blueprint's register was ~200 entries compiled by hand from PESO, CEA and
+The original design's register was ~200 entries compiled by hand from PESO, CEA and
 MoPNG lists. For the prototype it is generated instead (approved 2026-09-29):
 - **WRI Global Power Plant Database:** every combustion plant, and India's nuclear
   plants
@@ -14,7 +14,7 @@ MoPNG lists. For the prototype it is generated instead (approved 2026-09-29):
 Rows added by hand (``source_ref`` 'manual:...') survive reseeding, so the PESO and
 CEA lists can still be layered on.
 
-Criticality follows the blueprint's table; mining, kilns and oil and gas fields,
+Criticality follows the original design's table; mining, kilns and oil and gas fields,
 which it does not list, are placed between its rows and marked as ours.
 """
 
@@ -27,7 +27,7 @@ import pandas as pd
 
 log = logging.getLogger(__name__)
 
-#: asset type -> criticality (blueprint table; * = added here)
+#: asset type -> criticality (original design table; * = added here)
 CRITICALITY = {
     "nuclear_power_station": 1.00,   # * thermally invisible, highest consequence
     "lng_lpg_terminal": 1.00,

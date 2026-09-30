@@ -78,7 +78,7 @@ The unlabelled 91 are predicted: heavy industry 66, mining 25.
   plants in forested or farmed country that OSM has not mapped.
 - Training on those labels would have taught the model that unmapped industry is crop
   burning. The class now also needs fewer than half its candidates on confirmed
-  industry (CLAUDE.md, changed decision 20). GIHS decides only whether the class
+  industry (DESIGN.md, decision 20). GIHS decides only whether the class
   exists; it never labels a source.
 - Recurring biomass does not survive the registry gate. That is the gate doing its
   job: stubble and forest fires are Road A's to classify.

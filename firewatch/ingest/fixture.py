@@ -15,7 +15,7 @@ modelled stubble and forest fires as tight point sources, and that one mistake h
 the landscape-chaining problem until real data exposed it. Here biomass is diffuse:
 thousands of fields packed into a belt, each burning a day or two a season and
 recurring year after year, and forest fires that spread across pixels. The numbers
-it is tuned to are the measured ones in CLAUDE.md: ~30% of detections at night,
+it is tuned to are the measured ones in docs/DESIGN.md: ~30% of detections at night,
 intermittent flares, temperatures only at night.
 """
 

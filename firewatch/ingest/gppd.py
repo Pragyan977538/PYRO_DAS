@@ -1,6 +1,6 @@
 """WRI Global Power Plant Database (v1.3, CC BY 4.0): India's power plants.
 
-A heavy_industry label source for Model 1 (CLAUDE.md's class table), next to OSM's
+A heavy_industry label source for Model 1 (the class table in docs/DESIGN.md), next to OSM's
 ``power=plant``: OSM tags a plant's fuel inconsistently, and GPPD fills the gaps
 with a named, geolocated list. Only combustion plants label a heat source; the
 whole list is kept for the map.
@@ -23,7 +23,7 @@ URL = ("https://raw.githubusercontent.com/wri/global-power-plant-database/master
        "output_database/global_power_plant_database.csv")
 SOURCE = "gppd"
 #: Fuels burned on site. Nuclear is left out on purpose: its waste heat goes into
-#: cooling water at 30-40 C, far below detection (CLAUDE.md, critical assets).
+#: cooling water at 30-40 C, far below detection (docs/DESIGN.md §3.13).
 THERMAL_FUELS = ("Coal", "Gas", "Oil", "Biomass", "Petcoke", "Cogeneration", "Waste")
 COLUMNS = ["gppd_id", "name", "primary_fuel", "capacity_mw", "commissioning_year",
            "owner", "longitude", "latitude"]

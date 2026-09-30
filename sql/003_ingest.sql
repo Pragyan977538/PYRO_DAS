@@ -61,7 +61,7 @@ CREATE INDEX IF NOT EXISTS gihs_reference_geom_gist ON gihs_reference USING GIST
 -- osm_industrial, reshaped. Stage 0 declared MultiPolygon only, but flares and
 -- wells are mapped as points, and one OSM id is unique only per element type.
 -- Rebuilt only while the old shape is still in place, so a re-run keeps data.
--- label_group follows CLAUDE.md's class table (first match in priority order).
+-- label_group follows the class table in docs/DESIGN.md (first match in priority order).
 -- ===========================================================================
 DO $$
 BEGIN

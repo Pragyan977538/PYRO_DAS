@@ -6,7 +6,7 @@ public AWS bucket, so each point costs a ranged HTTP read of the tiles around it
 instead of downloading ~10 GB of India. GDAL (bundled with rasterio) does the
 range requests.
 
-Cropland labels come from here only, never from season (CLAUDE.md).
+Cropland labels come from here only, never from season (docs/DESIGN.md §3.1).
 """
 
 from __future__ import annotations

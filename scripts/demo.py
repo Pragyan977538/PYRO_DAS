@@ -8,7 +8,7 @@ Run it through scripts/demo.ps1 or scripts/demo.sh, which start the API first if
 it is not already up. Every stop is a map URL (date, place, zoom and the panel to
 open are all URL parameters), so the path needs no clicking; each stop also
 checks the API record behind it, so a demo that would show an empty panel fails
-here first rather than in front of the judges.
+here first rather than in front of an audience.
 
 The stops are fixed ids from the 2024 replay (make inference events risk). If the
 database is rebuilt, ids can move: --check says which stop broke.

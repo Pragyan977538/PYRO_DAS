@@ -11,7 +11,7 @@ The rule, on Road A detections of the last 60 days snapped to 375 m cells:
 cells burning on >= 3 distinct days seed clusters (500 m apart at most). A
 cluster no wider than 2 km is promoted when it burned on >= 10 distinct days and
 on at least half of the days it could have been seen since its first fire --
-persistence over *observable* days (CLAUDE.md), from the same cloud record as
+persistence over *observable* days (docs/DESIGN.md §3.7), from the same cloud record as
 the registry. Counting calendar days instead (">= 20 days") promoted Baghjan 66
 days after it caught fire: the monsoon hid it for weeks. Where there is no cloud
 record, 20 calendar days stands in. Crop fields burn once a season and forest

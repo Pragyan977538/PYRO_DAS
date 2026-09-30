@@ -7,8 +7,8 @@ NOAA-20), 3,906,061 detections
 
 > **Rerun with correct distances.** These numbers come from a rerun using EPSG:7755
 > metres. The first run used the per-point equirectangular formula, which sheared
-> distances by ~300 m per 500 m north–south; a Stage 1 test caught it (CLAUDE.md,
-> changed decision 17). The conclusions held. One decision changed: the gate's
+> distances by ~300 m per 500 m north–south; a Stage 1 test caught it (DESIGN.md,
+> decision 17). The conclusions held. One decision changed: the gate's
 > month threshold, explained under §1.
 
 Three questions from the review of Stage 1.5:
@@ -200,7 +200,7 @@ The census is `scripts/spike_labels.py` and `reports/stage1_5b/labels.md`:
 - It labels each source by the first OSM group with an object within 1 km, in priority
   order: oil & gas, steel/cement, thermal power, mining, kiln, other industry.
 - The OSM data is a one-off Overpass pull restricted to India, which is fine for a
-  count. The production ingest still uses the Geofabrik extract, per CLAUDE.md.
+  count. The production ingest still uses the Geofabrik extract (DESIGN.md §3.12).
 - WRI's Global Power Plant Database independently finds coal, gas or oil plants within
   1 km of 47 sources, close to OSM's 49.
 

@@ -8,7 +8,7 @@ sources fall within 1 km of each label group.
 
 OSM comes from a one-off Overpass pull restricted to India and cached locally.
 That is fine for a count; the production ingest (Stage 2) still uses the Geofabrik
-extract, per CLAUDE.md. Thermal power plants are cross-checked against the WRI
+extract (docs/DESIGN.md §3.12). Thermal power plants are cross-checked against the WRI
 Global Power Plant Database (CC BY 4.0).
 
 GIHS is used only to describe the result (are unlabelled sources on GIHS sites?),

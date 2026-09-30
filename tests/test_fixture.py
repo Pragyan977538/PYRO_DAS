@@ -58,7 +58,7 @@ def _near(frame: pd.DataFrame, lat: float, lon: float, metres: float) -> pd.Seri
 
 
 def _gate(frame: pd.DataFrame, months: int = 3, days: int = 10, years: int = 2) -> set[int]:
-    """The recurrence gate from CLAUDE.md, on 375 m cells: the cells kept."""
+    """The recurrence gate from docs/DESIGN.md, on 375 m cells: the cells kept."""
     t = frame["acq_datetime"]
     cells = pd.DataFrame({"cell": cell_375(frame["latitude"], frame["longitude"]),
                           "year": t.dt.year, "month": t.dt.month, "day": t.dt.date})

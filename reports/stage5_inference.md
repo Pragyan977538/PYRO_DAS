@@ -17,8 +17,8 @@ Commands:
 - `scripts/check_baghjan.py` is the regression test.
 
 The rules below were written into `docs/ROADMAP.md` before anything ran. Three changed
-after the first real results, for reasons given here and in CLAUDE.md's changed
-decisions 22–25.
+after the first real results, for reasons given here and in the DESIGN.md decision
+log, 22–25.
 
 ## The 2024 replay
 
@@ -96,7 +96,7 @@ injection. Real incidents in it count against us, so they are upper bounds.
 - About half of the misses (57 of 975 events) fall to the non-negotiable
   `frp > 1.5 × p99` condition. These are sources so heavy-tailed in normal operation
   that 6–12× their median stays under 1.5× their p99.
-- That condition is kept on purpose: it and the z-score fail differently (CLAUDE.md).
+- That condition is kept on purpose: it and the z-score fail differently (DESIGN.md §3.4).
   So this is reported, not tuned away.
 
 **How the design moved from the first run (24 h window, source-wide fallback) to this
@@ -108,8 +108,8 @@ one:**
 | No clock on "consecutive" | 90.0% | 0.161% | 0.059% |
 | + a pass judged only against its own instrument (final) | **88.2%** | **0.083%** | **0.040%** |
 
-- **"Consecutive" has no clock now.** That is CLAUDE.md's literal rule; the 24 h window
-  was mine. A weak source is not detected on every overpass: 38% of the injected events
+- **"Consecutive" has no clock now.** That is the design's literal rule; the 24 h window
+  was an implementation addition. A weak source is not detected on every overpass: 38% of the injected events
   had their two passes more than 24 h apart. The window cut recall by 35 points and
   bought nothing.
 - **Own-instrument baselines.** Most 2023 confirmed false positives were MODIS passes
@@ -126,8 +126,8 @@ alerts under 0.01%:
 | Single-pass spikes caught | 61.7% | 40.3% | 20.3% | **7.8%** |
 
 At 6× the tier almost never fires, false or true. At 3× it would catch 62% of one-pass
-blasts, at about 40 false alerts a year across 557 sources. **This is a product
-decision, not a statistical one; it is yours** (`ANOMALY_EXTREME=7,3` flips it).
+blasts, at about 40 false alerts a year across 557 sources. **This is an operational
+decision, not a statistical one** (`ANOMALY_EXTREME=7,3` flips it).
 
 Many "false" alerts look real. In January 2023 HMEL Bathinda breached day and night for
 three weeks, and on 13 February 2023 Panipat was flagged by MODIS and NOAA-20 on the
@@ -151,7 +151,7 @@ the well.
 | On Road B | **0** | **0** |
 
 **It is never Road B, so the test passes either way.** Counting observable days, as
-CLAUDE.md requires for all persistence, turns a two-month blind spot into three weeks.
+the design requires for all persistence, turns a two-month blind spot into three weeks.
 Before promotion, Road A called the fire forest, vegetation or cropland: the pixel's
 land cover. No oil well within 375 m is mapped in OSM, which is exactly the gap
 promotion exists to close.

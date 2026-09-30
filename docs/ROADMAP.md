@@ -1,10 +1,10 @@
 # FireWatch — build roadmap
 
 Implementation plan for **PS 26162**. Each stage is independently runnable and has a
-pass/fail acceptance test. Design rules live in `CLAUDE.md`; where this file and
-`CLAUDE.md` disagree, `CLAUDE.md` wins.
+pass/fail acceptance test. Design rules live in [DESIGN.md](DESIGN.md); where this file
+and DESIGN.md disagree, DESIGN.md wins.
 
-Revised 2026-09-29 after a design review — see `CLAUDE.md` → *Changed decisions*.
+Revised 2026-09-29 after a design review — see DESIGN.md → *Decision log*.
 
 ---
 
@@ -53,52 +53,67 @@ differentiation and goes first. Stage 10's headline metric is not optional.
 
 ```
 firewatch/
-├── docker-compose.yml          # postgis (+ timescaledb), one command to start
-├── Makefile, make.ps1          # same targets; make.ps1 for Windows
+├── docker-compose.yml          # PostgreSQL + PostGIS (+ TimescaleDB) and the API
+├── Makefile, make.ps1          # the same targets; make.ps1 for Windows
 ├── requirements.txt            # pinned; Python 3.13
 ├── .env.example
-├── sql/
-│   ├── 001_schema.sql          # TimescaleDB optional
+├── sql/                        # applied in order by scripts/migrate.py
+│   ├── 001_schema.sql          # core tables; TimescaleDB optional
 │   ├── 002_indexes.sql
-│   └── 003_critical_assets.sql
+│   ├── 003_ingest.sql          # OSM, GIHS, observability
+│   ├── 004_registry.sql        # sources, cells, fingerprints, baselines
+│   ├── 005_labels.sql          # power plants, weak labels
+│   ├── 006_inference.sql       # roads, reasons, alerts, passes, runs
+│   ├── 007_events.sql
+│   ├── 008_risk.sql            # critical assets, wind
+│   └── 009_api.sql
 ├── firewatch/
-│   ├── config.py               # env-driven; MOCK_MODE (fixture) flag lives here
+│   ├── config.py               # environment-driven settings; MOCK_MODE lives here
 │   ├── db.py                   # connection pool, upsert helpers
-│   ├── grid.py                 # EPSG:7755 metres, 375 m cells, cloud-grid cells: one implementation
+│   ├── grid.py                 # EPSG:7755 metres, 375 m cells: the one implementation
 │   ├── ingest/
 │   │   ├── normalize.py        # column normalisation, SP/NRT dedupe
 │   │   ├── fixture.py          # synthetic test fixture + spike injector
 │   │   ├── firms_archive.py    # public yearly CSVs
 │   │   ├── firms_api.py        # 2025+ and live NRT (needs FIRMS_MAP_KEY)
-│   │   ├── vnf.py              # optional enrichment
+│   │   ├── load.py             # bulk loading into PostgreSQL
+│   │   ├── vnf.py              # optional temperature enrichment
 │   │   ├── osm.py              # Geofabrik + pyosmium
-│   │   ├── landcover.py        # WorldCover sampling
-│   │   ├── fsi.py
+│   │   ├── gppd.py             # WRI Global Power Plant Database
+│   │   ├── landcover.py        # WorldCover sampling and the 300 m mosaic
 │   │   ├── gihs.py             # evaluation reference
-│   │   └── observability.py    # daily cloud amount via NASA POWER
+│   │   ├── observability.py    # daily cloud amount via NASA POWER
+│   │   ├── wind.py             # daily wind components via NASA POWER
+│   │   └── basemap.py          # Natural Earth layers for the offline map
 │   ├── registry/
 │   │   ├── cells.py            # 375 m grid + recurrence gate
 │   │   ├── cluster.py
 │   │   ├── fingerprint.py
-│   │   └── baseline.py
+│   │   ├── baseline.py         # per-pass baselines by instrument, day/night, season
+│   │   ├── build.py            # the weekly rebuild; stable source ids
+│   │   └── evaluate.py         # GIHS, FIRMS type=2, demo sites
 │   ├── models/
 │   │   ├── labels.py           # weak labels + LABEL_INPUTS
-│   │   └── source_clf.py       # Model 1 — the only learned model
+│   │   └── source_clf.py       # Model 1, the only learned model
 │   ├── inference/
 │   │   ├── router.py
 │   │   ├── road_a.py           # rules + physics; emits the reason text
 │   │   ├── anomaly.py          # Road C, two tiers
 │   │   ├── promotion.py        # provisional sources that never silence alerts
+│   │   ├── engine.py           # replay and live runs, day by day
 │   │   └── events.py
 │   ├── risk/
-│   │   ├── assets.py
+│   │   ├── assets.py           # the generated critical-asset register
+│   │   ├── population.py       # WorldPop disks and downwind sectors
 │   │   └── score.py
 │   └── api/
 │       ├── main.py
-│       └── tiles.py
-├── web/                        # MapLibre frontend + offline basemap
-├── scripts/                    # thin CLI wrappers: migrate.py, spike_cluster.py, ...
-├── reports/
+│       └── tiles.py            # vector tiles from ST_AsMVT
+├── web/                        # MapLibre frontend; offline
+├── scripts/                    # one CLI per pipeline step, plus check scripts
+├── reference/                  # verified industrial accidents; synthetic benchmark
+├── reports/                    # results of each stage
+├── docs/                       # DESIGN.md, this roadmap, images
 └── tests/
 ```
 
@@ -159,8 +174,8 @@ mode.
 
 A fixture test caught a projection bug that affected every stage: the per-point
 equirectangular formula sheared distances by ~300 m per 500 m north–south. It is
-now EPSG:7755 in `firewatch/grid.py`, and the spikes were rerun (see CLAUDE.md,
-changed decision 17).
+now EPSG:7755 in `firewatch/grid.py`, and the spikes were rerun (see DESIGN.md,
+decision 17).
 
 ---
 
@@ -182,7 +197,7 @@ belt? (2) does `ball_tree` reduce memory? It also proposes starting gate thresho
 Stage 3.
 
 **Blocked by:** Stage 0 fixes only — it runs in pandas. **Effort:** one day.
-**Stage 3 does not start until the user has reviewed this.**
+**Stage 3 does not start until this has been reviewed.**
 
 **Result (2026-09-29):** both problems are real.
 - **Problem 1.** On one year the paddy belt fragments into thousands of field
@@ -219,7 +234,7 @@ sources* each OSM label group can label.
   supports the three-class Model 1 (Stage 4).
 - All numbers are from reruns with EPSG:7755 distances.
 
-**Stage 3 does not start until the user has reviewed this.**
+**Stage 3 does not start until this has been reviewed.**
 
 ---
 
@@ -232,7 +247,7 @@ sources* each OSM label group can label.
   resumable, needs `FIRMS_MAP_KEY`. Sensor-agnostic, because S-NPP ends 1 Nov 2026.
 - VNF loader with the spatio-temporal join — **optional**; skips cleanly without an EOG
   licence.
-- OSM via Geofabrik + pyosmium, using the tags in the `CLAUDE.md` label table →
+- OSM via Geofabrik + pyosmium, using the tags in the DESIGN.md label table →
   `osm_industrial`.
 - WorldCover sampling at points (cloud-optimised GeoTIFFs, windowed reads).
 - GIHS loader (evaluation reference only).
@@ -344,7 +359,7 @@ if the full archive allows:
 
 It also reports how many co-located sources merge.
 
-**Blocked by:** Stage 2, **and the user's review of Stage 1.5b**. **Effort:** two days.
+**Blocked by:** Stage 2, **and a review of Stage 1.5b**. **Effort:** two days.
 
 **Result (2026-09-29):** accepted; `check_registry.py` passes. Full report:
 `reports/stage3_registry.md`.
@@ -356,8 +371,8 @@ It also reports how many co-located sources merge.
   **99.3%**.
 - Reliance is found at 0.72 km, Nayara at 0.25 km and HMEL at 2.1 km.
 - **The gate moved to ≥ 3 years,** by the rule above: on 13 years the two-year gate
-  had only 79.5% of its sources on GIHS (`reports/stage3/sweep.md`; CLAUDE.md
-  changed decision 19).
+  had only 79.5% of its sources on GIHS (`reports/stage3/sweep.md`; DESIGN.md
+  decision 19).
 - 185 sources each merge two or more GIHS objects (469 objects in all): GIHS draws a
   plant as several objects.
 - One source is day-only: Bajaj Auto, Waluj, on a confirmed GIHS site, which is why
@@ -381,7 +396,7 @@ the registry sources each group can label.
 - **Recurrent biomass:** a fourth class only if WorldCover finds at least ~30 registry
   sources on cropland or forest with no industrial label.
 
-**Build:** label joins per the class table in `CLAUDE.md`, with `LABEL_INPUTS` declared
+**Build:** label joins per the class table in DESIGN.md, with `LABEL_INPUTS` declared
 per label. XGBoost with GroupKFold by spatial block (~2°, so no state polygons are
 needed); confusion matrix, per-class precision/recall, feature importances; model
 persistence; the leakage guard.
@@ -434,7 +449,7 @@ guard passes and is tested to fail on any label input. The metrics are in
   - oil and gas 34
   - unlabelled 91 (2 of them kiln-first)
 - **Biomass class: not added.** There were 42 candidates, but 81% sat on
-  GIHS-confirmed industry (CLAUDE.md changed decision 20).
+  GIHS-confirmed industry (DESIGN.md decision 20).
 - **Block CV:** accuracy **65.2%**, balanced accuracy **61.2%**, macro-F1 0.62.
   - The location-only reference reaches 40.8% balanced.
   - Shuffled labels average 33.3% balanced: none of 100 shuffles comes near
@@ -488,7 +503,7 @@ would flag every big multi-pixel site on most passes, because the most extreme o
 pixels is not one pixel. A pass total would drown a one-pixel fire at a many-pixel site.
 
 **Road C:**
-- **Breach and confirmed tier** are fixed by CLAUDE.md: breach is `z > 3.5` and
+- **Breach and confirmed tier** are fixed by the design (DESIGN.md §3.4): breach is `z > 3.5` and
   `max > 1.5 × p99`. Confirmed means breaching on two consecutive passes at the source:
   the previous detection pass, from any sensor, within 24 h.
 - **Extreme tier** (provisional) starts at `z > 7` and `max > 3 × p99`.
@@ -548,7 +563,7 @@ about 10 minutes.
 - **Baghjan:** 645 fire detections, **0 on Road B**. Promoted 21 days after it caught
   fire, then Road C.
 - **Four rules changed after the first real results.** Each is principled rather than
-  fitted, and each is in CLAUDE.md changed decisions 22–25:
+  fitted, and each is in DESIGN.md decisions 22–25:
   - **"Consecutive" has no clock.** The 24 h window above cost 35 points of recall
     and bought nothing.
   - **Own-instrument baselines only.** This halved the confirmed false positives.
@@ -646,7 +661,7 @@ same decomposition is checked in the database by `scripts/check_risk.py`. Full w
 - **All 461,008 events** of 2024 are scored in about 3 minutes, each with hazard,
   exposure and vulnerability sub-scores and their raw values.
 - **Asset register:** generated from OSM and WRI power plants rather than hand-compiled
-  (user-approved). It has 48,107 entries, including 9 nuclear plants (CLAUDE.md changed
+  for the prototype. It has 48,107 entries, including 9 nuclear plants (DESIGN.md
   decisions 26–28).
 - **A large fire far from people and assets scores low:** 482 such 2024 fires score at
   most 17.8. The largest, a 2,559 MW forest fire, scores 16.5; additive would give 42.4.
@@ -790,15 +805,17 @@ report: `reports/validation.md`.
 
 ---
 
-## Parallel track — people, not code (start now)
+## External dependencies
 
-- **Verified industrial fire set:** 20–40 news-verified events with date and location;
-  Baghjan 2020 must be in it. Check each one in FIRMS. Some accidents leave no thermal
-  signature; record those too, because they belong in the limitations table.
-- **VNF academic licence:** signed agreement, approval time unknown. Nothing blocks on it.
-- **Docker Desktop:** needs WSL2 or Hyper-V, virtualisation enabled in BIOS, admin rights.
-- **FIRMS `MAP_KEY`:** only needed for 2025 onward and live NRT. Free and instant.
-- **Critical asset register:** ~200 entries from PESO, CEA and MoPNG listings.
+Work outside the code, tracked alongside the stages.
+
+| Item | Needed for | Status |
+|---|---|---|
+| Verified industrial accident set (20–40 events, Baghjan 2020 included) | Stage 10 headline | 20 compiled, 18 located; Dahej 2020 and Atchutapuram 2024 still need the plant pinned |
+| VIIRS Nightfire academic licence | Temperature features | Pending; the pipeline runs without it |
+| Docker Desktop (WSL2 or Hyper-V, administrator rights) | `docker compose` deployment | Not yet verified; a portable PostgreSQL + PostGIS is used |
+| FIRMS `MAP_KEY` | 2025 onward and the live NRT feed | Free; not yet configured |
+| Official critical-asset lists (PESO, CEA, MoPNG) | Risk: vulnerability | A generated register is in use; manual rows can be layered on |
 
 ---
 
@@ -817,7 +834,9 @@ Stage 3 finishes — the sources endpoint doesn't need events.
 
 ---
 
-## Totals
+## Effort estimate
+
+The estimate made at the start of the build.
 
 | Stages | Content | Effort |
 |---|---|---|
@@ -829,23 +848,5 @@ Stage 3 finishes — the sources endpoint doesn't need events.
 | 10 | Validation | ~1 day |
 | | **Total** | **~15.5 working days** |
 
-The build window is October–November 2026; the 36-hour finale is in December. With a
-team of six, run four tracks: data and registry, labels and model, API and frontend, and
-the parallel track above.
-
----
-
-## What I need from you per stage
-
-- **Stage 0:** Docker Desktop installed, so the DB tests can run.
-- **Stage 2:** the FIRMS `MAP_KEY` for 2025 onward (history needs none); EOG credentials
-  once the VNF licence is approved (optional).
-- **Stage 5:** Baghjan's coordinates and dates from the verified event set.
-- **Stage 7:** the critical asset register. I'll seed ~40 entries I can source confidently
-  (major refineries, LNG terminals, large thermal stations); expanding to 200 from the
-  PESO and CEA listings is a manual task.
-- **Stage 10:** the complete verified event set.
-
----
-
-Tell me a stage number and I'll build it.
+The plan assumed a team of six working four tracks in parallel: data and registry,
+labels and model, API and frontend, and the external dependencies above.

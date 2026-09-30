@@ -51,8 +51,8 @@ The recalibration rule was written into `docs/ROADMAP.md` before the sweep ran:
 On 13 years the two-year gate registers **679 sources, only 79.5% on a GIHS site**,
 below the 85% floor. Two qualifying years out of thirteen is a much looser test than
 two out of three. The best passing setting is **≥ 3 months, ≥ 10 days, in ≥ 3 years**:
-557 sources, F1 84.8. It is now the config default (`REGISTRY_GATE=3,10,3`, CLAUDE.md
-changed decision 19). A multi-year rule still keeps a single long accident (Baghjan)
+557 sources, F1 84.8. It is now the config default (`REGISTRY_GATE=3,10,3`, DESIGN.md
+decision 19). A multi-year rule still keeps a single long accident (Baghjan)
 out by construction.
 
 Full table: [stage3/sweep.md](stage3/sweep.md). A trade-off to note: raising the days

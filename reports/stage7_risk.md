@@ -11,7 +11,7 @@ score low, and an additive score would hand it a high one on hazard alone.
 
 Code: `firewatch/risk/` (`assets`, `population`, `score`); commands: `make risk`
 (`scripts/score_risk.py`, then `scripts/check_risk.py`). The formula and weights are the
-blueprint's (§10).
+original design's ([DESIGN.md](../docs/DESIGN.md) §2.1).
 
 | Term | What it is | From |
 |---|---|---|
@@ -21,8 +21,8 @@ blueprint's (§10).
 
 ## The asset register, generated rather than hand-compiled
 
-The blueprint asked for ~200 entries compiled by hand from PESO, CEA and MoPNG. For the
-prototype it is **generated from maps** instead, as the user approved. It stays static
+The original design called for ~200 entries compiled by hand from PESO, CEA and MoPNG.
+For the prototype it is **generated from maps** instead. It stays static
 and never thermal, which is the non-negotiable: a nuclear plant is thermally invisible
 until something burns.
 
@@ -42,11 +42,11 @@ until something burns.
 | kiln | 5,696 | 0.25 |
 | **total** | **48,107** | |
 
-- **The criticality values** are the blueprint's table. Nuclear, oil and gas fields,
+- **The criticality values** follow the original design's table. Nuclear, oil and gas fields,
   mines and kilns, which it does not list, are placed between its rows.
 - **Manual rows** (`source_ref` `manual:…`) survive reseeding, so the official lists can
   still be layered on.
-- **Heritage sites** are left out, as agreed.
+- **Heritage sites** are left out for the prototype.
 
 ## Result: 2024
 
@@ -101,5 +101,5 @@ multiplication.
 - **Population is 2020 WorldPop at 1 km.**
 - **Criticality comes from map tags.** A refinery tagged only `landuse=industrial` counts
   as an industrial estate (0.30), not a refinery (0.95). Manual rows are the remedy.
-- **The exponents and weights are the blueprint's starting point,** not calibrated.
-  They are tunable per user.
+- **The exponents and weights are the original design's starting point,** not
+  calibrated. They can be tuned per deployment.
