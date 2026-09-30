@@ -1,4 +1,4 @@
--- FireWatch Stage 5: routing, Road A reasons, Road C alerts, promotion.
+-- PYRO_DAS Stage 5: routing, Road A reasons, Road C alerts, promotion.
 -- Idempotent, like every migration. Adding nullable columns is a metadata-only
 -- change, so it is instant even on the full detections table.
 

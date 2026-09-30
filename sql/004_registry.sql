@@ -1,4 +1,4 @@
--- FireWatch Stage 3: the registry's cells and its build history.
+-- PYRO_DAS Stage 3: the registry's cells and its build history.
 -- Idempotent, like every migration: safe to re-run on a built registry.
 
 -- ===========================================================================

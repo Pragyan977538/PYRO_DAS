@@ -1,4 +1,4 @@
--- FireWatch Stage 2: ingestion tables.
+-- PYRO_DAS Stage 2: ingestion tables.
 -- Idempotent, like every migration: safe to re-run on a loaded database.
 
 -- Every date in this system is a UTC date: FIRMS sensor-days, the SP/NRT

@@ -1,4 +1,4 @@
--- FireWatch Stage 8: indexes the API's lookups need.
+-- PYRO_DAS Stage 8: indexes the API's lookups need.
 -- Idempotent, like every migration.
 
 -- A source's detail page lists its events.

@@ -1,4 +1,4 @@
-# FireWatch — build roadmap
+# PYRO_DAS — build roadmap
 
 Implementation plan for **PS 26162**. Each stage is independently runnable and has a
 pass/fail acceptance test. Design rules live in [DESIGN.md](DESIGN.md); where this file

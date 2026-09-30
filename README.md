@@ -11,14 +11,14 @@ sources over India.**
 
 NASA FIRMS reports that a pixel is hot, but not *what* is hot. A refinery flare, a stubble
 fire, a forest fire and a chemical-plant explosion all arrive as the same point.
-FireWatch learns the thermal fingerprint of every recurring heat source in India from
+PYRO_DAS learns the thermal fingerprint of every recurring heat source in India from
 thirteen years of satellite history. For each new detection it then answers the question
 FIRMS cannot: **is this fire normal for this place?**
 
 Built for Smart India Hackathon 2026, problem statement **26162** (National Technical
 Research Organisation, Disaster Management).
 
-![FireWatch map: one week of November 2024 over the Punjab–Haryana stubble belt](docs/images/map_overview.png)
+![PYRO_DAS map: one week of November 2024 over the Punjab–Haryana stubble belt](docs/images/map_overview.png)
 
 *One week of November 2024. Stubble fires (orange) are separated from industrial heat
 (blue), known thermal sources (dark markers) and alerts (red rings), and every point carries
@@ -87,7 +87,7 @@ Measured on the real FIRMS archive for India: 12.55 M detections, 2012–2024.
 
 The last row is the headline measure, and the validation report explains it accident by
 accident. Most sudden accidents burn out between the two daily passes of a polar-orbiting
-satellite, so they never appear in FIRMS at all. FireWatch is strong on persistent
+satellite, so they never appear in FIRMS at all. PYRO_DAS is strong on persistent
 industrial heat. Sub-hourly detection of accidents needs geostationary data
 (INSAT-3DS, Himawari), which the same registry and baselines would support unchanged.
 
@@ -148,6 +148,8 @@ temperatures are optional. `MOCK_MODE=1` switches to a small synthetic fixture f
 offline tests.
 
 ## Repository layout
+
+The Python package, database and command names use the code name `firewatch`.
 
 ```
 firewatch/

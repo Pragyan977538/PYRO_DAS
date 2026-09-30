@@ -1,4 +1,4 @@
-"""FireWatch API: what the map asks, answered from PostGIS.
+"""PYRO_DAS API: what the map asks, answered from PostGIS.
 
     uvicorn firewatch.api.main:app        # or: make api
 
@@ -36,7 +36,7 @@ CLASS_ALIASES = {"flare": "oil_gas", "refinery": "oil_gas", "oil": "oil_gas",
 MAX_FEATURES = 20_000
 
 app = FastAPI(
-    title="FireWatch API",
+    title="PYRO_DAS API",
     version="0.8.0",
     description="Industrial fires and persistent thermal sources over India (SIH 2026, "
                 "PS 26162). Every feature carries its class, alert tier and the reason "

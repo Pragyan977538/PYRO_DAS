@@ -15,7 +15,7 @@ endif
 .PHONY: help install db migrate psql test lint fixture backfill registry labels train inference events risk basemap api validate demo spike down clean logs
 
 help:
-	@echo "FireWatch - build tasks (Windows: .\\make.ps1 <target>)"
+	@echo "PYRO_DAS - build tasks (Windows: .\\make.ps1 <target>)"
 	@echo "  make install   create .venv (Python 3.13) and install dependencies"
 	@echo "  make db        start postgis(+timescaledb) and wait for healthy"
 	@echo "  make migrate   apply sql/*.sql in order"

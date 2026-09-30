@@ -20,7 +20,7 @@ import pandas as pd
 
 from firewatch.db import get_conn
 
-#: FIRMS column -> FireWatch column. Both instruments end up with bt4 / bt5.
+#: FIRMS column -> PYRO_DAS column. Both instruments end up with bt4 / bt5.
 RENAME: dict[str, str] = {
     "brightness": "bt4",
     "bright_ti4": "bt4",
@@ -56,7 +56,7 @@ _FLOATS = ["latitude", "longitude", "frp", "bt4", "bt5", "scan", "track"]
 
 
 def normalise_firms(raw: pd.DataFrame) -> pd.DataFrame:
-    """Return one FIRMS file's rows in FireWatch column names and types.
+    """Return one FIRMS file's rows in PYRO_DAS column names and types.
 
     Normalise each file on its own. A frame that already mixes MODIS and VIIRS
     column names is rejected: renaming it would create two ``bt4`` columns, which

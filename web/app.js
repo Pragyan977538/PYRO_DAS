@@ -1,4 +1,4 @@
-/* FireWatch map: vanilla JS on MapLibre, everything served locally (works offline).
+/* PYRO_DAS map: vanilla JS on MapLibre, everything served locally (works offline).
  *
  * Layers, bottom to top: cloud cover, incidents (risk), fire detections by
  * category (vector tiles; binned below zoom 7), alert rings, known sources.
@@ -589,4 +589,4 @@ async function init() {
   });
 }
 
-init().catch((err) => toast(`FireWatch could not start: ${err.message}`, 8000));
+init().catch((err) => toast(`PYRO_DAS could not start: ${err.message}`, 8000));

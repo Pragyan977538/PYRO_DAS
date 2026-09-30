@@ -1,4 +1,4 @@
-# FireWatch API and map: one process serves both (see firewatch/api/main.py).
+# PYRO_DAS API and map: one process serves both (see firewatch/api/main.py).
 # Everything the page loads is local -- vendored MapLibre, the Natural Earth
 # basemap from DATA_DIR/basemap -- so it runs with the network disconnected.
 FROM python:3.13-slim

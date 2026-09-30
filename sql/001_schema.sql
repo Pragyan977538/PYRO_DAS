@@ -1,4 +1,4 @@
--- FireWatch schema
+-- PYRO_DAS schema
 -- Idempotent: safe to re-run.
 --
 -- TimescaleDB is optional. The docker image ships it, and there detections

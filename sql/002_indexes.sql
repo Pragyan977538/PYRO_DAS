@@ -1,4 +1,4 @@
--- FireWatch indexes (Stage 0)
+-- PYRO_DAS indexes (Stage 0)
 -- Split from the schema so indexes can be dropped and rebuilt after a bulk
 -- backfill without touching table definitions. Idempotent.
 

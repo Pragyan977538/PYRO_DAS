@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    FireWatch task runner for Windows: the same targets as the Makefile.
+    PYRO_DAS task runner for Windows: the same targets as the Makefile.
 
 .DESCRIPTION
     Windows PowerShell 5.1 has no && operator and does not stop when a native
@@ -104,7 +104,7 @@ function Get-BootstrapPython {
 }
 
 function Show-Help {
-    Write-Host 'FireWatch - build tasks (.\make.ps1 <target>)'
+    Write-Host 'PYRO_DAS - build tasks (.\make.ps1 <target>)'
     Write-Host '  install   create .venv (Python 3.13) and install dependencies'
     Write-Host '  db        start postgis(+timescaledb) and wait for healthy'
     Write-Host '  migrate   apply sql\*.sql in order'

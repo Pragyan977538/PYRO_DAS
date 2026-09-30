@@ -62,7 +62,7 @@ def test_app_and_basemap_routes(tmp_path, monkeypatch):
         from firewatch.api.main import app
         client = TestClient(app)
         r = client.get("/")
-        assert r.status_code == 200 and "FireWatch" in r.text
+        assert r.status_code == 200 and "PYRO_DAS" in r.text
         assert r.headers["cache-control"] == "no-cache"
         assert client.get("/app.js").status_code == 200
         assert client.get("/basemap/countries.geojson").status_code == 404   # not built here

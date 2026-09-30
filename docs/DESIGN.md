@@ -1,6 +1,6 @@
-# FireWatch — Design
+# PYRO_DAS — Design
 
-How FireWatch works, and why each part is built the way it is. The build stages and their
+How PYRO_DAS works, and why each part is built the way it is. The build stages and their
 acceptance tests are in [ROADMAP.md](ROADMAP.md); every number quoted here comes from a
 report in [`reports/`](../reports).
 
@@ -17,7 +17,7 @@ FIRMS' archive does carry a `type=2` "static land source" flag, but it has three
 - It is not available in near-real time.
 - It cannot say whether today's reading is abnormal.
 
-FireWatch learns each location's thermal fingerprint from a decade of history, and uses it
+PYRO_DAS learns each location's thermal fingerprint from a decade of history, and uses it
 to answer the question FIRMS cannot: **is this normal for this place?**
 
 **Deliverables of PS 26162:**
@@ -344,7 +344,7 @@ within a batch, and by `supersede_nrt` in the database. Every row stores `produc
 ### 3.12 OpenStreetMap comes from Geofabrik, not Overpass
 
 Overpass was unreachable during feasibility testing: a 503 on the main endpoint, and
-timeouts on two mirrors. FireWatch downloads the Geofabrik India extract (~1.7 GB) and
+timeouts on two mirrors. PYRO_DAS downloads the Geofabrik India extract (~1.7 GB) and
 filters it locally with pyosmium, which needs no native tools on Windows. This is
 reproducible, faster, and cannot be down during a demonstration.
 

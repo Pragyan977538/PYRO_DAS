@@ -1,4 +1,4 @@
--- FireWatch Stage 7: risk scoring.
+-- PYRO_DAS Stage 7: risk scoring.
 -- Idempotent, like every migration.
 
 -- ===========================================================================

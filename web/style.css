@@ -1,4 +1,4 @@
-/* FireWatch map. Colours are tokens; categories use the reference palette's
+/* PYRO_DAS map. Colours are tokens; categories use the reference palette's
    first slots in fixed order; alerts use reserved status reds. */
 :root {
   --surface: #fcfcfb;

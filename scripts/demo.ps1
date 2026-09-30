@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    FireWatch: run the three-minute demo path (Stage 10).
+    PYRO_DAS: run the three-minute demo path (Stage 10).
 
 .DESCRIPTION
     Starts the API and map on http://localhost:8000 if nothing is answering there,

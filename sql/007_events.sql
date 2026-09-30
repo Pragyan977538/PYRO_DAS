@@ -1,4 +1,4 @@
--- FireWatch Stage 6: event assembly.
+-- PYRO_DAS Stage 6: event assembly.
 -- Idempotent, like every migration.
 
 -- ===========================================================================

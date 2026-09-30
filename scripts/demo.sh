@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# FireWatch: run the three-minute demo path (Stage 10).
+# PYRO_DAS: run the three-minute demo path (Stage 10).
 #
 #   scripts/demo.sh              # each stop opens in the browser for 30 s
 #   scripts/demo.sh --pause 10

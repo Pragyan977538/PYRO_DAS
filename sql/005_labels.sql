@@ -1,4 +1,4 @@
--- FireWatch Stage 4: weak labels for Model 1.
+-- PYRO_DAS Stage 4: weak labels for Model 1.
 -- Idempotent, like every migration.
 
 -- ===========================================================================
